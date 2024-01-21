@@ -11,8 +11,11 @@ width = 1280
 heigth = 720
 fps = 60
 """iniciar pantalla"""
+lista_de_pantalla = [pygame.RESIZABLE,pygame.FULLSCREEN]
+index_pantalla = 0
+pantalla = lista_de_pantalla[index_pantalla]
 pygame.init()
-screen = pygame.display.set_mode((width, heigth), pygame.RESIZABLE)
+screen = pygame.display.set_mode((width, heigth), pantalla)
 pygame.display.set_caption('')
 icon = pygame.Surface((32,32))
 pygame.display.set_icon(icon)
@@ -681,43 +684,7 @@ class Menu:
 
 
 
-class Video:
-    clip = None
-    velocity = 3
-    max_time = 10000
-    scale = 1
-    dimemtions = (1280,720)
-    num = 1
-    speed_multiplier = 0.73
-    extensión = '.jpg'
-    """activate"""
-    activate = True
-    """sound"""
-    #sound_video = 'clips/audio/bishoujomom_ghosface.mp3'
-    sound_video = None
-    if sound_video is not None: #and num > 1:
-        sonidito = pygame.mixer.Sound(sound_video)
-        sonidito.play()
-    """end game wins"""
-    game_win_clip = None
-    """end game lose"""
-    game_lose_clip = None
-    def __init__(self,screen):
-        self.screen = screen
-        self.num_round = round(self.num)
-        if self.clip is not None:
-            self.mostrar_clip(self.clip)
-    def sound(self):
-        if self.sound_video is not None and self.num > 1:
-            sonidito = pygame.mixer.Sound(self.sound_video)
-            sonidito.play()
 
-
-    def mostrar_clip(self,name):
-        if self.activate == True:
-            self.vidio = pygame.transform.scale(pygame.image.load(f'{name}{self.num_round}{self.extensión}'),(self.dimemtions[0],self.dimemtions[1]))
-            self.screen.blit(self.vidio,(0,0))
-#milki_1 = pygame.image.load('')
 
 
 
@@ -735,7 +702,7 @@ def xd():
 
 """menu"""
 img_back = pygame.image.load('tema de menu principal/goku_kaioken vs vegeta.jpg')
-new_boton = {'scale':200,'pos':(500,500),'color':(255,0,0),'text':'xd','hover_color':(0,0,255),'funtion':xd,'ico':'1080full-gabi-wolscham.jpg','text_scale':32}
+
 
 menu = Menu
 menu.image_background = img_back
@@ -743,7 +710,7 @@ menu.boton_pos = (500,300)
 menu.boton_text_pos = (500,300)
 menu.boton_scale = 200
 menu.version_pos = (0,700)
-#menu.button_clone_1 = new_boton
+
 
 """npc"""
 #npc = NPC
@@ -752,10 +719,10 @@ diccionario = {'indice':0}
 
 
 """character main"""
-def charge_img(name,max,extension,scale):
+def charge_img(name,max,extension,scale,angle):
     lista_imgs = []
     for i in range(1,max):
-        lista_imgs.append(pygame.transform.rotozoom(pygame.image.load(f'{name}{i}{extension}').convert(),0,scale))
+        lista_imgs.append(pygame.transform.rotozoom(pygame.image.load(f'{name}{i}{extension}').convert(),angle,scale))
     return lista_imgs
 def save_surf_repeated(amount,surf):
     surfs = []
@@ -838,21 +805,23 @@ n = 0
 m = 0
 
 """customs"""
-index_hair = 1
+index_hair = 0
 index_head = 0
 hair = [pygame.image.load('custom_sprites/hair sprites/hair_spritesheet.png').convert_alpha(),pygame.image.load('custom_sprites/hair sprites/hair_spritesheet_trunks.png').convert_alpha()]
 head = [pygame.image.load('custom_sprites/head sprites/head_spritesheet.png').convert_alpha()]
 shadows_sprites = pygame.image.load('custom_sprites/shadows sprites/shadows_sprites.png').convert_alpha()
 custom_spritesheet_list = [pygame.image.load('custom_sprites/spritesheet/14502.png').convert_alpha(),pygame.image.load('custom_sprites/spritesheet/75737.png').convert_alpha(),pygame.image.load('custom_sprites/spritesheet/goku_spritesheet.png').convert_alpha()]
-index_custom = 2
+index_custom = 1
 #custom charge
-scala_sprites_custom = 2
+scala_sprites_custom = 1.5
 hair_goku_up = return_spritesheet(hair[index_hair],[1,68],(17,34),5,False,True,(False,False),scala_sprites_custom)
 head_goku_up = return_spritesheet(head[index_head],[1,68],(17,34),5,False,True,(False,False),scala_sprites_custom)
 shadows_sprites_up = return_spritesheet(shadows_sprites,[1,68],(17,34),5,False,True,(False,False),scala_sprites_custom)
 custom_spritesheet_up = return_spritesheet(custom_spritesheet_list[index_custom],[1,68],(17,34),5,False,True,(False,False),scala_sprites_custom)
-def create_character(self,list_img):
+def create_character(pos):
     global n,m,spritesheet,index_sprite
+    surf = pygame.Surface((180,180))
+    surf.fill((255,255,255))
     #print(round(self.num_change))
     """if round(self.num_change) > 3:
         self.num_change = 0
@@ -864,28 +833,26 @@ def create_character(self,list_img):
 
     index_sprite += 1
     if index_sprite > 3:
-        index_sprite = 3
+        index_sprite = 0
     n += 0.1
     if n > 3:
         n = 0
     m += 0.15
     if m > 4:
         m = 0
-    screen.blit(down_sprite[round(m)],(200,200))
-    screen.blit(up_sprite[round(m)], (290, 200))
-    screen.blit(left_sprite[round(m)], (380, 200))
-    screen.blit(right_sprite[round(m)], (470, 200))
-    screen.blit(down_sprite_punch_1[round(n)], (200, 300))
+
+    """screen.blit(down_sprite_punch_1[round(n)], (200, 300))
     screen.blit(down_sprite_punch_2[round(n)], (290, 300))
     screen.blit(up_sprite_punch_1[round(n)], (200, 390))
     screen.blit(up_sprite_punch_2[round(n)], (290, 390))
     screen.blit(left_sprite_punch_1[round(n)], (200, 450))
-    screen.blit(right_sprite_punch_2[round(n)], (290, 450))
+    screen.blit(right_sprite_punch_2[round(n)], (290, 450))"""
     #custom
-    screen.blit(shadows_sprites_up[round(m)], (780, 200))
-    screen.blit(custom_spritesheet_up[round(m)], (780, 200))
-    screen.blit(hair_goku_up[round(m)],(780,200))
-    screen.blit(head_goku_up[round(m)], (780, 200))
+    screen.blit(surf,pos)
+    screen.blit(shadows_sprites_up[round(m)], (pos[0] + 100, pos[1] + 100))
+    screen.blit(custom_spritesheet_up[round(m)], (pos[0] + 100, pos[1] + 100))
+    screen.blit(hair_goku_up[round(m)],(pos[0] + 100, pos[1] + 100))
+    screen.blit(head_goku_up[round(m)], (pos[0] + 100, pos[1] + 100))
 
 def get_locs(amount,x,y,bool_list_vert_or_hor,dimensions):
     locs = [(x,y)]
@@ -898,7 +865,7 @@ def get_locs(amount,x,y,bool_list_vert_or_hor,dimensions):
     return locs
 
 g = get_locs(3,0,0,(True,False),(20,30))
-print(g)
+
 
 #print(save_surf_repeated(9,pygame.image.load('map_obj/muro_1.png').convert()))
 
@@ -916,8 +883,9 @@ def collide_for_color(self,color,surface_pos,screen_scale,surface_for_detect,len
         if posicion_de_obtencion_left[0] > 0:
                 color_detect_left = surface_for_detect.get_at((posicion_de_obtencion_left))
                 if color_detect_left == color:
+
                     Rect_of_color_left = pygame.Rect(posicion_de_obtencion_left, dimentions)
-                    print('detect the colour')
+
                     """colision personaje"""
                     if surface_pos.colliderect(Rect_of_color_left):
                         surface_pos[0] += self.velocidad*2
@@ -980,7 +948,7 @@ def get_color_in_img(img):
             if color not in colores_unicos:
                 colores_unicos.append(color)
     return colores_unicos
-print(get_color_in_img(t))
+
 color_permitido = get_color_in_img(t)
 def indice_punto_mas_cercano(punto_referencia, lista_puntos):
     indice = min(range(len(lista_puntos)), key=lambda i: (lista_puntos[i][0] - punto_referencia[0])**2 + (lista_puntos[i][1] - punto_referencia[1])**2)
@@ -1016,7 +984,7 @@ def move_npc_for_enemy(self,npc_dict,distancia_mostrar):
     #print(npc_dict['number_change'])
 
     indice = indice_punto_mas_cercano(p1.s_rect,npc_dict['rect_list'])
-    print(npc_dict['number_change'][indice])
+    #print(npc_dict['number_change'][indice])
     for pos,index,num_img in zip(npc_dict['rect_list'],npc_dict['indice'],npc_dict['number_change']):
 
 
@@ -1091,31 +1059,69 @@ def move_npc_for_npc(self,npc_dict,distancia_mostrar):
             if caminar == True:
                 npc_dict['rect_list'][indice][0] += npc_dict['vel_move']
         npc_dict['num_lag'] = 0
-pasos = {'orden_de_los_pasos':[1,4,3,2],'tamaño_de_pasos':200,'up':4}
-def create_tracks(dict):
-    dict['orden_de_los_pasos'] += 1
+pasos = {'delay_list':[5,0,7,8],'max_delay':20,'posiciones':[(40,420),(160,680),(40,1000)],'index':0,'max_index':2,'specific_index':0,'vel':0.1}
+
+def create_tracks(dict,dict_track,per_pos):
+    #indice = indice_punto_mas_cercano(per_pos, dict['rect_list'])
+    if dict_track['index'] < dict_track['max_index']:
+        dict_track['index'] += dict_track['vel']
+    if dict_track['index'] >= dict_track['max_index']:
+        dict_track['index'] = 0
+
+    if avistamiento('a',dict['rect_list'][dict_track['specific_index']],dict_track['posiciones'][dict_track['index']],10000):
+        print('a')
 def npc_follow(dict):
     print('a')
     #if anti_avistamiento()
 """interactuar"""
-def create_text(palabras,max_delay,color_text,scale_text):
-    dicti = {'palabras':palabras,'delay':0,'max_delay':max_delay,'color':color_text,'scale':scale_text}
+def create_text(cuadro_de_texto,palabras,max_delay,color_text,scale_text,maximo_de_palabras,delay_list):
+    dicti = {'cuadro':cuadro_de_texto,'palabras':palabras,'delay_list':delay_list,'max_delay':max_delay,'color':color_text,'scale':scale_text,'maximo_de_palabras_index':maximo_de_palabras}
     return dicti
-texto_normal = create_text(['Ora','ora'],50,(255,0,0),43)
+texto_normal = create_text(pygame.transform.rotozoom(pygame.image.load('multiverse/cuadros de texto/cuadro_1.png'),0,0.1),
+                           ['Ora','ora','inutil','bastardo'],
+                           50,(0,0,0),24,3,[0,5,9,24,7,8])
 def hablar(dict,pos_list,personaje_pos):
     indice = indice_punto_mas_cercano(personaje_pos, pos_list)
-    rand = random.randint(1,50)
-    texto = random.choice(dict['palabras'])
+    rand = random.randint(1,dict['max_delay'])
+    rand_text = random.randint(0,dict['maximo_de_palabras_index'])
+    texto = dict['palabras'][rand_text]
     #if dict['delay'] > dict['max_delay']:
-    if rand == 5:
-        string_blit(texto,(pos_list[indice][0],pos_list[indice][1] - 40),dict['scale'],dict['color'])
+    #if rand == 5:
+    screen.blit(dict['cuadro'],(pos_list[indice][0] - 90,pos_list[indice][1] - 80))
+    if rand in dict['delay_list']:
+        string_blit(texto,(pos_list[indice][0] - 60,pos_list[indice][1] - 50),dict['scale'],dict['color'])
+
+tienda_de_antiguedades = {'id':(0,0),'place_img':pygame.image.load('places/restaurant/159967 (1).png'),'place_pos':[218,138],'place_pos_door':pygame.Rect([485,285],(40,60)),
+                          'door_color_detect':(0,255,0),
+                          'place_mask_collision':pygame.image.load('places/restaurant/mask.png'),'color_collision':(255,0,0),
+                          'active':False,'num_press':0,'max_num_press':200}
+tienda_electrónica = {'id':(2,0),'place_img':pygame.image.load('places/tienda electronica/159966.png'),'place_pos':[380,-20],'place_pos_door':pygame.Rect([433,206],(40,60)),
+                          'door_color_detect':(0,255,0),
+                          'place_mask_collision':pygame.image.load('places/restaurant/mask.png'),'color_collision':(255,0,0),
+                          'active':False,'num_press':0,'max_num_press':200}
+def create_place(screen,dict,dict_map,bool_press,bool_despress,per_pos,id_map):
+
+    if id_map == dict['id']:
+        pygame.draw.rect(screen,(255,0,0),dict['place_pos_door'])
+        if hover('a',per_pos,(dict['place_pos_door'][0],dict['place_pos_door'][1]),(dict['place_pos_door'][2],dict['place_pos_door'][3])):
+            if bool_press == True:
+                dict['active'] = True
+            if bool_despress == True:
+                dict['active'] = False
+        if dict['active'] == True:
+            dict_map['bool'] = False
+            #collide_for_color(p1,dict['color_collision'],per_pos,(dict['place_img'].get_width(),dict['place_img'].get_height()),dict['place_mask_collision'],1,(32,32))
+            screen.blit(dict['place_img'],dict['place_pos'])
+        if dict['active'] == False:
+            dict_map['bool'] = True
+
 #def destruir()
 """xp"""
 def obtener_color(dict,nombre_de_json):
     to_py = f'value = {dict}'
     with open(nombre_de_json, "w") as archivo_jsoni:
         archivo_jsoni.write(to_py)
-EXP = {'xp':0,'max_xp':3000,'cantidad':10,'color_xp':(255,0,0),'escala_barra':[5,20],'pos':(20,100)}
+EXP = {'xp':0,'max_xp':3000,'cantidad':1,'color_xp':(255,0,0),'escala_barra':[5,20],'pos':(20,100)}
 objetos_de_obtencion = ['']
 Misiones_list = {'kills':0,'kills_vel_xp':0,'recorrido':0,'recorrido_vel_xp':0.1}
 
@@ -1127,8 +1133,8 @@ def obtener_metas(rect_enem,life_enem):
         Misiones_list['kills'] += 1
     if p1.moverse['up'] == True or p1.moverse['down'] == True or p1.moverse['left'] == True or p1.moverse['right'] == True:
         Misiones_list['recorrido'] += p1.velocidad
-def use_xp(screen,Exp_dict):
-    if pygame.mouse.get_pressed()[0] == True:
+def use_xp(screen,Exp_dict,bool_sum_xp):
+    if bool_sum_xp == True:
         if Exp_dict['xp'] < Exp_dict['max_xp']:
             Exp_dict['escala_barra'][0] += Exp_dict['cantidad']//10
             Exp_dict['xp'] += Exp_dict['cantidad']
@@ -1153,15 +1159,22 @@ def cancel():
     enem.damage = 5
 #def reiniciar(list_a_reiniciar,list_orden_reinicio):
 
-za_warudo_skill = {'img':t,'portada':pygame.image.load('portraits/stands/THE-WORLD_2.png'),'portada_pos':(20,120),'damage':200,'increase':5,'time':300,'max_time':300,'time_pos':[20,200],
+za_warudo_skill = {'img':t,'img_pos':(0,0),'portada':pygame.transform.rotozoom(pygame.image.load('portraits/stands/THE-WORLD_2.png'),0,0.5),
+                   'portada_pos':(20,120),'damage':200,'increase':5,'time':300,'max_time':300,'time_pos':[20,200],
                    'vel_charge':1,'delay_damage':300,'function':za_warudo,'bool_atack':False}
-crazy_diamond = {'img':t,'portada':pygame.Surface((32,32)),'portada_pos':(20,200),'increase':5,'damage':20,'time':5,'vel_charge':0.1,'delay_damage':5,'function':za_warudo}
-def use_skills(pantalla,dict):
+crazy_diamond = {'img':t,'img_pos':(0,0),'portada':pygame.transform.rotozoom(pygame.image.load('portraits/stands/THE-WORLD_2.png'),0,0.5),
+                 'portada_pos':(20,120),'damage':200,'increase':5,'time':300,'max_time':300,'time_pos':[20,200],
+                   'vel_charge':1,'delay_damage':300,'function':za_warudo,'bool_atack':False}
+yellow_temperance = {'img':t,'img_pos':(0,0),'portada':pygame.transform.rotozoom(pygame.image.load('portraits/stands/yellow-temperance.png'),0,0.5),
+                     'portada_pos':(20,120),'damage':200,'increase':5,'time':300,'max_time':300,'time_pos':[20,200],
+                   'vel_charge':1,'delay_damage':300,'function':za_warudo,'bool_atack':False}
+skills = {'skills':[za_warudo_skill,crazy_diamond,yellow_temperance],'index':0,'max_index':1}
+def use_skills(pantalla,dict,bool_use):
     """mostrar"""
     pantalla.blit(dict['portada'], dict['portada_pos'])
     string_blit(str(dict['time']),dict['time_pos'],45,(255,0,0))
 
-    if pygame.mouse.get_pressed()[2] == True:
+    if bool_use == True:
         dict['bool_atack'] = True
     if dict['bool_atack'] == True:
         dict['damage'] += dict['increase']
@@ -1171,8 +1184,8 @@ def use_skills(pantalla,dict):
             dict['function']()
         if dict['delay_damage'] > 0:
             dict['delay_damage'] -= dict['vel_charge']
-
-        pantalla.blit(dict['img'], (0, 0))
+        if dict['img'] is not None:
+            pantalla.blit(dict['img'], dict['img_pos'])
 
     if dict['time'] < 1:
         cancel()
@@ -1183,14 +1196,104 @@ def use_skills(pantalla,dict):
             dict['time'] += dict['vel_charge']
 
 
-tamaño = 1.1
+"""sword float"""
+nozarashi = {'img':pygame.transform.rotozoom(pygame.image.load('multiverse/objects/zaraki_kenpachis_zanpakuto.png').convert_alpha(),0,0.2),'vel':20,
+             'distance':30,'min_distance':30,'max_distance':300}
+#nozarashi_shikai =
+def blit_sword(pantalla,dict,pos_per,pos_enem,index_per,bool_atack):
+    print(index_per)
+    x_dist = pos_enem[0] - pos_per[0]
+    y_dist = -(pos_enem[1] - pos_per[1])  # -ve because pygame y coordinates increase down the screen
+    angle = math.degrees(math.atan2(y_dist, x_dist))
+    if bool_atack == True:
+        if dict['distance'] < dict['max_distance']:
+            dict['distance'] += dict['vel']
+    if bool_atack == False:
+        dict['distance'] = dict['min_distance']
+
+    if index_per == 0 or index_per == 4 or index_per == 8:
+        pantalla.blit(pygame.transform.rotate(dict['img'],angle),(pos_per[0],pos_per[1] - dict['distance']))
+    if index_per == 1 or index_per == 5 or index_per == 9:
+        pantalla.blit(pygame.transform.rotate(dict['img'],angle),(pos_per[0],pos_per[1] + dict['distance']))
+    if index_per == 2 or index_per == 6 or index_per == 10:
+        pantalla.blit(pygame.transform.rotate(dict['img'],angle),(pos_per[0] - dict['distance'],pos_per[1]))
+    if index_per == 3 or index_per == 7 or index_per == 11:
+        pantalla.blit(pygame.transform.rotate(dict['img'],angle),(pos_per[0] + dict['distance'],pos_per[1]))
+"""efectos"""
+tamaño_effect = 0.2
+cantidad_getsuga_tenshou = 3
+effect_Tsukiyubi = {'surf_list':[charge_img('multiverse/effects/getsuga tenshou/getsuga tenshou_',3,'.png',tamaño_effect,90),
+                              charge_img('multiverse/effects/getsuga tenshou/getsuga tenshou_',3,'.png',tamaño_effect,270),
+                              charge_img('multiverse/effects/getsuga tenshou/getsuga tenshou_',3,'.png',tamaño_effect,180),
+                              charge_img('multiverse/effects/getsuga tenshou/getsuga tenshou_',3,'.png',tamaño_effect,360),
+
+                              charge_img('multiverse/effects/getsuga tenshou/getsuga tenshou_', 3, '.png', tamaño_effect, 360),
+                              charge_img('multiverse/effects/getsuga tenshou/getsuga tenshou_', 3, '.png', tamaño_effect, 180),
+                              charge_img('multiverse/effects/getsuga tenshou/getsuga tenshou_', 3, '.png', tamaño_effect, 90),
+                              charge_img('multiverse/effects/getsuga tenshou/getsuga tenshou_', 3, '.png', tamaño_effect, 270),
+
+                              charge_img('multiverse/effects/getsuga tenshou/getsuga tenshou_',3,'.png',tamaño_effect,90),
+                              charge_img('multiverse/effects/getsuga tenshou/getsuga tenshou_',3,'.png',tamaño_effect,180),
+                              charge_img('multiverse/effects/getsuga tenshou/getsuga tenshou_',3,'.png',tamaño_effect,270),
+                              charge_img('multiverse/effects/getsuga tenshou/getsuga tenshou_',3,'.png',tamaño_effect,360)
+                              ],
+                              'max_frames':1,'alpha':0,'vel':30,
+                    'distance':30,'min_distance':50,'max_distance':300,
+                    }
+
+
+print(effect_Tsukiyubi['surf_list'][0])
+def rotate_surf(surf,cantidad,angulo,scale):
+    list_rotate = []
+    dicti = {'surf_list':list_rotate,'distance':30,'min_distance':5,'max_distance':300,'vel':5,'alpha':0}
+    angle = angulo
+    for i in range(1,cantidad+1):
+        list_rotate.append(pygame.transform.rotozoom(surf,angle,scale))
+        angle += angulo
+    return dicti
+getsuga = rotate_surf(pygame.image.load('multiverse/effects/getsuga tenshou/getsuga tenshou_2.png').convert_alpha(),13,180,0.2)
+def blit_effect(pantalla,bool_atack,index_per,pos_per,dict):
+    ubis = [(pos_per[0],pos_per[1] - dict['distance']),(pos_per[0],pos_per[1] + dict['distance']),
+            (pos_per[0] - dict['distance'],pos_per[1]),(pos_per[0] + dict['distance'],pos_per[1]),
+
+            (pos_per[0], pos_per[1] - dict['distance']), (pos_per[0], pos_per[1] + dict['distance']),
+            (pos_per[0] - dict['distance'], pos_per[1]), (pos_per[0] + dict['distance'], pos_per[1]),
+
+            (pos_per[0], pos_per[1] - dict['distance']), (pos_per[0], pos_per[1] + dict['distance']),
+            (pos_per[0] - dict['distance'], pos_per[1]), (pos_per[0] + dict['distance'], pos_per[1]),
+            ]
+
+    index = random.randint(0,dict['max_frames'])
+    #index = 0
+    print(index)
+    if bool_atack == True:
+        if dict['distance'] < dict['max_distance']:
+            dict['distance'] += dict['vel']
+        if dict['distance'] >= dict['max_distance']:
+            dict['distance'] = dict['min_distance']
+        dict['alpha'] = 250
+    if bool_atack == False:
+        dict['alpha'] = 0
+        dict['distance'] = dict['min_distance']
+    dict['surf_list'][index_per][index].set_alpha(dict['alpha'])
+    pantalla.blit(dict['surf_list'][index_per][index],ubis[index_per])
+
+def press_button_time(screen,list_num,max_num_random,surf_normal,surf_press_list,pos):
+    num = random.randint(0,max_num_random)
+    rand = random.randint(0,1)
+    if num in list_num:
+        screen.blit(surf_press_list[rand],pos)
+    else:
+        screen.blit(surf_normal, pos)
+button_press = [pygame.image.load('botones/press_1.png'),pygame.image.load('botones/press_2.png')]
+button_no_press = pygame.image.load('botones/no_press.png')
 def Aura(list,color,cantidad,transparencia):
 
-    masks = [pygame.mask.from_surface(pygame.transform.rotozoom(list[i],0,tamaño)) for i in range(0, cantidad + 1)]
+    masks = [pygame.mask.from_surface(list[i]) for i in range(0, cantidad + 1)]
     #mask = pygame.mask.from_surface(to_kaioken[0][0])
     #new_mask = mask.to_surface()
     new_masks = [masks[i].to_surface() for i in range(0, cantidad + 1)]
-    masks_reescale = []
+    #masks_reescale = []
     #new_mask.set_colorkey((0,0,0))
     for i in range(0, cantidad + 1):
         new_masks[i].set_colorkey((0,0,0))
@@ -1199,11 +1302,11 @@ def Aura(list,color,cantidad,transparencia):
             for y in range(list[0].get_height()):
                 if new_masks[i].get_at((x,y)) == (255,255,255):
                     new_masks[i].set_at((x,y),color)
-                    masks_reescale.append(new_masks[i])
+                    #masks_reescale.append(new_masks[i])
     for i in range(0, cantidad + 1):
-        #new_masks[i].set_alpha(transparencia)
-        masks_reescale[i].set_alpha(transparencia)
-    return masks_reescale
+        new_masks[i].set_alpha(transparencia)
+        #masks_reescale[i].set_alpha(transparencia)
+    return new_masks
 #to_kaioken = [return_spritesheet(list_sprite[i], [1, 68], (17, 34), 5, False, True, (False, False), scala_sprites) for i in range(0, cantidad_de_imgs + 1)]
 alpha_aura = 50
 color_aura_move = (255,140,0)
@@ -1240,11 +1343,11 @@ def perfect_outline(self,display,img, loc,grosor):
     display.blit(mask_surf, (loc[0], loc[1] + grosor))
 
 def blit_aura(display,img,loc,grosor):
-    display.blit(img, (loc[0] - grosor, loc[1] - grosor))
-    """display.blit(img, (loc[0] - grosor, loc[1]))
+    #display.blit(img, (loc[0] - grosor, loc[1] - grosor))
+    display.blit(img, (loc[0] - grosor, loc[1]))
     display.blit(img, (loc[0] + grosor, loc[1]))
     display.blit(img, (loc[0], loc[1] - grosor))
-    display.blit(img, (loc[0], loc[1] + grosor))"""
+    display.blit(img, (loc[0], loc[1] + grosor))
 """collision mask"""
 def Aura_only(img,color,transparencia):
     mask = pygame.mask.from_surface(img)
@@ -1266,10 +1369,7 @@ def save_surf_and_pos(surface,x,y,bool_collision_mask):
     #if bool_collision_mask == True:
         #surf_and_pos.append(Aura(surface,(255,250,250),200))
     return surf_and_pos
-"""video"""
-vidio = Video
-vidio.clip = 'clips/frames/Video1-Frame'
-#vidio.activate = True
+
 
 """asignar"""
 p1 = player
@@ -1318,40 +1418,15 @@ goku_selec = pygame.image.load('portraits/goku.png')
 broly_selec = pygame.image.load('portraits/broly.png')
 vegeta_selec = pygame.image.load('portraits/vegeta.png')
 
-indice_selector_p1 = 0
-indice_selector_p2 = 0
-all_selec = [broly_selec,goku_selec,vegeta_selec]
-all_selec_pos = [(200,200),(300,200),(400,200)]
 
 
-"""p1 actual y p2"""
-p1_actual = goku_selec
-p2_actual = vegeta_selec
 
 """lugares"""
 indice_lugares = 0
 lugares = [pygame.image.load('lugares/mini/isla_kame_mini.png').convert(),pygame.image.load('lugares/mini/bosque_mini.png').convert(),pygame.image.load('lugares/mini/grand_kai_tournament_mini.png').convert(),pygame.image.load('lugares/mini/mini_fondo.jpg').convert()]
-lugares_pos = [(200,600),(350,600),(500,600),(650,600)]
-"""def"""
-def seleccion_free_battle(self):
-    global indice_lugares
-    lugar_actual = lugares[indice_lugares]
 
-    #print(pygame.mouse.get_pos())
-    screen.fill((255, 0, 0))
-    """mostrar roster"""
-    string_blit('p1',(1100,250),45,(255,255,255))
-    #screen.blit(p1_actual,(1100,300))
-    screen.blit(all_selec[indice_selector_p1],(1100,300))
-    string_blit('p2',(1200,250),45,(255,255,255))
-    screen.blit(all_selec[indice_selector_p2],(1200,300))
-    string_blit('START',(600,400),50,(255,255,255))
-    for surf,pos in zip(all_selec,all_selec_pos):
-        screen.blit(surf,pos)
-    for surf,pos in zip(lugares,lugares_pos):
-        screen.blit(surf,pos)
-    """mostrar lugar"""
-    screen.blit(lugar_actual,(800,600))
+"""def"""
+
 
 
 def antihover(ancho,alto,pos,surface_pos):
@@ -1384,23 +1459,21 @@ gta = pygame.image.load(img[0]).convert()
 gta2 = pygame.image.load(img[1]).convert()
 """imagenes y colision"""
 
-west_city_principal = pygame.image.load('map.png').convert()
-map_copy = pygame.image.load('map_copy.png').convert()
-map_copy_alpha = pygame.image.load('map_copy_transparent_2.png').convert_alpha()
-colorin_allowed = [(224,96,64),(40,40,40),(248,136,24),(96,56,32),(224,160,64),(200,96,0),(184,104,40),(224,184,64),(248,168,88),(248,208,64),
-                   (200,96,64),(96,72,64),(168,32,64),(120,0,56),(120,56,0),(128,104,80),(136,80,40),(200,128,80)]
-west_city_x = 0
-west_city_y = 0
+west_city_surf_1 = [return_spritesheet(pygame.image.load('map.png').convert(),[0,0],(1280,720),2,False,True,(False,False),1),
+                    return_spritesheet(pygame.image.load('map.png').convert(),[0,720],(1280,720),2,False,True,(False,False),1),
+                    return_spritesheet(pygame.image.load('map.png').convert(),[0,1440],(1280,720),2,False,True,(False,False),1)]
 
-objetos_de_west_city = [pygame.image.load('map_obj/muro_vertical_1.png').convert(),pygame.image.load('map_obj/muro_vertical_1.png').convert(),pygame.image.load('map_obj/muro_vertical_1.png').convert(),
-                        pygame.image.load('map_obj/muro_vertical_1.png').convert()]
+west_city_surf_2 = [return_spritesheet(pygame.image.load('map_copy.png').convert(),[0,0],(1280,720),2,False,True,(False,False),1),
+                    return_spritesheet(pygame.image.load('map_copy.png').convert(),[0,720],(1280,720),2,False,True,(False,False),1),
+                    return_spritesheet(pygame.image.load('map_copy.png').convert(),[0,1440],(1280,720),2,False,True,(False,False),1)]
 
-point_ini = ((8,200))
-objetos_de_west_city_pos = [(8,200),(point_ini[0],objetos_de_west_city[1].get_height()+point_ini[1]),(point_ini[0],objetos_de_west_city[1].get_height()*2+point_ini[1]),
-                            (point_ini[0],objetos_de_west_city[1].get_height()*3+point_ini[1]),(point_ini[0],objetos_de_west_city[1].get_height()*4+point_ini[1])]
-recto = get_rect_list(objetos_de_west_city,objetos_de_west_city_pos)
+west_city_surf_3 = [return_spritesheet(pygame.image.load('map_copy_transparent_2.png').convert_alpha(),[0,0],(1280,720),2,False,True,(False,False),1),
+                    return_spritesheet(pygame.image.load('map_copy_transparent_2.png').convert_alpha(),[0,720],(1280,720),2,False,True,(False,False),1),
+                    return_spritesheet(pygame.image.load('map_copy_transparent_2.png').convert_alpha(),[0,1440],(1280,720),2,False,True,(False,False),1)]
+west_city = {'surf_normal':west_city_surf_1,'index_x':0,'index_y':0,
+             'surf_collide':west_city_surf_2,'surf_alpha':west_city_surf_3}
 
-"""rect npc"""
+
 
 """definir algo"""
 p1.punch_speed_multiplier = 5
@@ -1436,23 +1509,23 @@ def blit_video(screen,dict):
         #dict['bool_pause'] = True
         dict['indice'] = 0
     screen.blit(dict['video_frames'][round(dict['indice'])],dict['pos'])
-video_ghostface = {'video_frames':charge_img('videos/frames/bishoujo_ghostface/Video1-Frame',20,'.jpg',1.5),'max_frames':5000,
+video_ghostface = {'video_frames':charge_img('videos/frames/bishoujo_ghostface/Video1-Frame',20,'.jpg',1.5,0),'max_frames':5000,
                    'sound':pygame.mixer.music.load('videos/sonido/bishoujo_ghostface.ogg'),'vel':0.8,'indice':0,'pos':(0,0),
                    'bool_pause':False
                    }
-video_bleach = {'video_frames':charge_img('videos/frames/ichigo vs kenpachi/Video1-Frame',100,'.jpg',0.5),'max_frames':99,
+video_bleach = {'video_frames':charge_img('videos/frames/ichigo vs kenpachi/Video1-Frame',100,'.jpg',0.5,0),'max_frames':99,
                    'sound':pygame.mixer.music.load('videos/sonido/bishoujo_ghostface.ogg'),'vel':0.8,'indice':0,'pos':(0,0),
                    'bool_pause':False
                    }
-video_goku_sad = {'video_frames':charge_img('videos/frames/goku sad/Video1-Frame',100,'.jpg',5),'max_frames':90,
+video_goku_sad = {'video_frames':charge_img('videos/frames/goku sad/Video1-Frame',100,'.jpg',5,0),'max_frames':90,
                    'sound':pygame.mixer.music.load('videos/sonido/bishoujo_ghostface.ogg'),'vel':0.8,'indice':0,'pos':(0,0),
                    'bool_pause':False
                    }
-video_saitama_meme = {'video_frames':charge_img('videos/frames/saitama achicado/Video1-Frame',140,'.jpg',0.5),'max_frames':130,
+video_saitama_meme = {'video_frames':charge_img('videos/frames/saitama achicado/Video1-Frame',140,'.jpg',0.5,0),'max_frames':130,
                    'sound':pygame.mixer.music.load('videos/sonido/bishoujo_ghostface.ogg'),'vel':1.5,'indice':0,'pos':(0,0),
                    'bool_pause':False
                    }
-video_dante_dr_fauss = {'video_frames':charge_img('videos/frames/dante dr_fauss/Video1-Frame',58,'.jpg',0.5),'max_frames':56,
+video_dante_dr_fauss = {'video_frames':charge_img('videos/frames/dante dr_fauss/Video1-Frame',58,'.jpg',0.5,0),'max_frames':56,
                    'sound':pygame.mixer.music.load('videos/sonido/bishoujo_ghostface.ogg'),'vel':0.8,'indice':0,'pos':(0,0),
                    'bool_pause':False
                    }
@@ -1502,6 +1575,26 @@ def pause_sound_and_video():
     vid['bool_pause'] = True
 def despause_sound_and_video():
     vid['bool_pause'] = False
+
+def sum_index_pantalla():
+    global index_pantalla
+    if index_pantalla < 1:
+        index_pantalla += vel_ind
+def res_index_pantalla():
+    global index_pantalla
+    if index_pantalla > -1:
+        index_pantalla -= vel_ind
+"""guardar"""
+cosas_pa_guardar = {}
+def save(name_of_py,list_surfs):
+    posis = list_surfs
+    to_py = f'value = {posis}'
+    with open(name_of_py, "w") as archivo_jsoni:
+        archivo_jsoni.write(to_py)
+
+
+
+
 #create
 def create_button(screen,dict,bool_active):
     button = pygame.Surface(dict['escala'])
@@ -1544,34 +1637,61 @@ button_pause = {'escala': (32, 32),'pos':(0,300), 'color': (255, 0, 0),
 button_despause = {'escala': (32, 32),'pos':(0,340), 'color': (255, 0, 0),
                            'string':'D','string_scale':40,'string_color':(255,255,255),
                            'funcion':despause_sound_and_video}
+button_sum_ind_screen = {'escala': (32, 32),'pos':(1000,600), 'color': (255, 0, 0),
+                           'string':'>','string_scale':40,'string_color':(255,255,255),
+                           'funcion':sum_index_pantalla}
+button_res_ind_screen = {'escala': (32, 32),'pos':(1100,600), 'color': (255, 0, 0),
+                           'string':'<','string_scale':40,'string_color':(255,255,255),
+                           'funcion':res_index_pantalla}
 """fonts"""
 def encontrar_posiciones(palabra, lista):
     posiciones = [i for i, elemento in enumerate(lista) if elemento == palabra]
     return posiciones if posiciones else f"La palabra '{palabra}' no se encuentra en la lista."
-
+def encontrar_maximo_de_elementos(lista):
+    num = 0
+    for dia in lista:
+        num += 1
+    return num
 
 
 
 abc = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'ñ', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
 font_custom = [pygame.image.load('fonts/A-B-C-D-E-F-G-H-I-J-K-L-.png').convert_alpha()]
 font_1 = return_spritesheet(font_custom[0],[7,0],(59,60),25,False,True,(False,False),1)
-palabra_a = 'v'
-palabra_list = ['d','a','n','t','e']
-posicion_de_las_letras = get_locs(5,0,0,(False,True),(32,32))
-print(posicion_de_las_letras)
-posiciones_a = encontrar_posiciones(palabra_a, abc)
-posiciones_b = [encontrar_posiciones(palabra_list[i],abc)for i in range(0,4+1)]
-def create_text_by_font_img(screen,posiciones,font_imgs,pos_txt,scale_text):
+
+palabra_list = ['d','b']
+posicion_de_las_letras = get_locs(5,500,0,(False,True),(32,32))
+maximo = encontrar_maximo_de_elementos(palabra_list)
+posiciones_b = [encontrar_posiciones(palabra_list[i],abc)for i in range(0,maximo)]
+def create_text_by_font_img(screen,posiciones,font_imgs,pos_txt):
     for ind_pos in posiciones:
         screen.blit(font_imgs[ind_pos],pos_txt)
         #for pos in pos_txt:
 
 
 
+collision_in_the_map = {'bool':True}
+collide_bool = {'bool':False}
+ubis_in_map = [tienda_de_antiguedades['place_pos'],tienda_de_antiguedades['place_pos_door']]
+
+"""npc xd"""
+spritesheet_bulma = pygame.image.load('personajes/To npc/bulma.png')
+bulma = create_the_npcs([return_spritesheet(spritesheet_bulma,[60,85],(20,40),4,False,True,(False,False),1.5),
+                         return_spritesheet(spritesheet_bulma,[60,9],(20,40),4,False,True,(False,False),1.5),
+                         return_spritesheet(spritesheet_bulma,[60,46],(20,40),4,False,True,(True,False),1.5),
+                         return_spritesheet(spritesheet_bulma,[60,46],(20,40),4,False,True,(False,False),1.5)],
+                        1,(30,70),(400,400),2,2,(32,32),1,300)
+spritesheet_milk = pygame.image.load('personajes/To npc/milk.png')
+milk = create_the_npcs([return_spritesheet(spritesheet_milk,[60,85],(20,40),4,False,True,(False,False),1.5),
+                         return_spritesheet(spritesheet_milk,[60,9],(20,40),4,False,True,(False,False),1.5),
+                         return_spritesheet(spritesheet_milk,[60,46],(20,40),4,False,True,(True,False),1.5),
+                         return_spritesheet(spritesheet_milk,[60,46],(20,40),4,False,True,(False,False),1.5)],
+                        1,(30,70),(400,400),2,2,(32,32),1,300)
 
 def move_map(self):
 
-    global contador_de_salida,indice_west_city,west_city,indice_surfaces,numero_de_cambio,west_city_x,west_city_y,index_sprite,move
+    global contador_de_salida,indice_west_city,west_city,indice_surfaces,numero_de_cambio,west_city_x,west_city_y,index_sprite,pantalla
+    pantalla = lista_de_pantalla[round(index_pantalla)]
     map_activates = modos_string[round(ind_mode)]
     cont_round = round(contador_de_salida)
     """p1"""
@@ -1612,9 +1732,16 @@ def move_map(self):
             enem.e_rect.y = 400
             contador_de_salida = 0
     elif map_activates == 'history':
-        west_city_principal_subsurf = pygame.Surface.subsurface(west_city_principal, (west_city_x, west_city_y),(1280, 720)).convert()
-        west_copy_subsurf = pygame.Surface.subsurface(map_copy, (west_city_x, west_city_y),(1280, 720)).convert()
-        screen.blit(west_city_principal_subsurf,(0,0))
+        #west_city_principal_subsurf = pygame.Surface.subsurface(west_city_principal, (west_city_x, west_city_y),(1280, 720)).convert()
+        #west_copy_subsurf = pygame.Surface.subsurface(map_copy, (west_city_x, west_city_y),(1280, 720)).convert()
+
+        #screen.blit(west_city_principal_subsurf,(0,0))
+        screen.blit(west_city['surf_normal'][west_city['index_y']][west_city['index_x']],(0,0))
+        create_place(screen, tienda_de_antiguedades, collision_in_the_map, pygame.mouse.get_pressed()[0],
+                     pygame.mouse.get_pressed()[2], p1.s_rect,(west_city['index_y'],west_city['index_x']))
+        create_place(screen, tienda_electrónica, collision_in_the_map, pygame.mouse.get_pressed()[0],
+                     pygame.mouse.get_pressed()[2], p1.s_rect, (west_city['index_y'], west_city['index_x']))
+        print(pygame.mouse.get_pos())
         """button"""
         create_button(screen, button_sum_index_sprite, pygame.mouse.get_pressed()[0])
         create_button(screen, button_res_index_sprite, pygame.mouse.get_pressed()[0])
@@ -1627,87 +1754,103 @@ def move_map(self):
         screen.blit(portraits[round(index_sprite_enem)], (1175, 0))
 
         #create_character(self,mainer)
-        use_skills(screen,za_warudo_skill)
+        use_skills(screen,skills['skills'][round(skills['index']+2)],pygame.mouse.get_pressed()[2])
         for rect_list in the_npc_0['rect_list']:
             rex = [p1.s_rect,enem.e_rect,rect_list]
             for rects in rex:
-                collide_for_color(self,(248,0,0),rects,(1200,600),west_copy_subsurf,1,(32,32))
-        #draw_the_surf_in_other(invisible_object(p1.s_rect,(32,32),west_copy_subsurf,color_permitido),map_copy_alpha)
+                if collision_in_the_map['bool'] == True:
+                    collide_for_color(self,(248,0,0),rects,(1200,600),west_city['surf_collide'][west_city['index_y']][west_city['index_x']],1,(32,32))
+        #draw_the_surf_in_other(invisible_object(p1.s_rect,(32,32),west_copy_subsurf,color_permitido),map_copy_alpha)"""
         #move_npc_for_enemy(self,the_npc_0,300)
         move_npc_for_npc(self,the_npc_0,300)
+        move_npc_for_npc(self,bulma,800)
+        move_npc_for_npc(self, milk, 800)
         #create_character(self,mainer)
         #screen.blit(prob[index_sprite][index_sprite],(0,0))
         #move_in_map(self,500,recto,objetos_de_west_city)
-        if p1.moverse['up'] == True:
-            enem.e_rect.y += p1.velocidad
-            if west_city_y > 0:
-                west_city_y -= p1.velocidad
-        if p1.moverse['down'] == True:
-            enem.e_rect.y -= p1.velocidad
-            #if west_city_y > 450 and west_city_y < 1630:
-                #west_city_y += p1.velocidad*3
-            if west_city_y < 1630:
-                west_city_y += p1.velocidad
-        if p1.moverse['left'] == True:
-            if west_city_x > 0:
-                west_city_x -= p1.velocidad
-        if p1.moverse['right'] == True:
-            if west_city_x < 670:
-                west_city_x += p1.velocidad
+        """sum"""
+        if west_city['index_y'] < 2:
+            if p1.s_rect[1] > 700:
+                west_city['index_y'] += 1
+                p1.s_rect[1] = 40
+        if west_city['index_x'] < 1:
+            if p1.s_rect[0] > 1270:
+                west_city['index_x'] += 1
+                p1.s_rect[0] = 0
+        """res"""
+        if west_city['index_y'] > -1:
+            if p1.s_rect[1] < 0:
+                west_city['index_y'] -= 1
+                p1.s_rect[1] = 0
+        if west_city['index_x'] > -1:
+            if p1.s_rect[0] < 0:
+                west_city['index_x'] -= 1
+                p1.s_rect[0] = 0
     elif map_activates == 'training':
         p1.vida_value = 300
         enem.vida = 300
-        screen.blit(p1_actual,(0,100))
-        screen.blit(p2_actual,(1200,100))
+
 
     if map_activates != 'training':
         p1.vel_trasicion_img = 0.1
 
 nigga = 0
-max_nigga = 4
+max_nigga = 1
 def change_map(self):
-    global map_activates,the_character,indice_lugares,the_enemy,index_skills,index_video,nigga
+    global map_activates,indice_lugares,index_video,nigga
     map_activates = modos_string[round(ind_mode)]
     rgb = (random.randint(0,250),random.randint(0,250),random.randint(0,250),random.randint(0,250))
+
     """map copy alpha"""
     if menu.active == False:
+
         """exp"""
-        use_xp(screen,EXP)
+        use_xp(screen,EXP,p1.s_rect.colliderect(enem.e_rect))
         """auras"""
         num_rand = random.randint(1,2)
         auras = [aura_ej, aura_down, aura_left, aura_right,
                  globals()[f'aura_punch_up_{num_rand}'], globals()[f'aura_punch_down_{num_rand}'], globals()[f'aura_punch_left_{num_rand}'], globals()[f'aura_punch_right_{num_rand}'],
                  aura_kekkai_up, aura_kekkai_down, aura_kekkai_left, aura_kekkai_right]
-        blit_aura(screen, auras[self.indice][round(self.num_change)], p1.s_rect, tamaño)
-        hablar(texto_normal,[enem.e_rect],p1.s_rect)
+        #blit_aura(screen, auras[self.indice][round(self.num_change)], p1.s_rect, 5)
+        #blit_sword(screen,nozarashi,p1.s_rect,enem.e_rect,self.indice,pygame.mouse.get_pressed()[2])
+        #blit_effect(screen,pygame.mouse.get_pressed()[0],self.indice,p1.s_rect,effect_Tsukiyubi)
+        if p1.s_rect.colliderect(enem.e_rect):
+            press_button_time(screen,[0,8,9],12,button_no_press,button_press,(p1.s_rect[0]-50,p1.s_rect[1]+20))
+        #hablar(texto_normal,[enem.e_rect],p1.s_rect)
+        if map_activates == 'history':
+            screen.blit(west_city['surf_alpha'][west_city['index_y']][west_city['index_x']],(0,0))
     if pygame.mouse.get_pressed()[1] == True:
         map_activates = 'training'
 
     if menu.active == True:
+
         string_blit(str(map_activates),(900,50),50,rgb)
         screen.blit(portrait_modos[round(ind_mode)],(400,200))
+
         create_button(screen,button_res_index_mode,pygame.mouse.get_pressed()[0])
         create_button(screen, button_sum_index_mode, pygame.mouse.get_pressed()[0])
 
-        randi = random.randint(0,4)
+        #create_button(screen, button_sum_ind_screen, pygame.mouse.get_pressed()[0])
+        #create_button(screen, button_res_ind_screen, pygame.mouse.get_pressed()[0])
+
         if nigga < max_nigga:
-            nigga += 0.2
+            nigga += 0.1
         if nigga > max_nigga:
             nigga = 0
         num_change = round(nigga)
-        create_text_by_font_img(screen, posiciones_b[num_change], font_1, posicion_de_las_letras[num_change], 40)
+        create_text_by_font_img(screen, posiciones_b[num_change], font_1, posicion_de_las_letras[num_change])
 
         #video
-        #index_video += vel_frame
-        #screen.blit(video_1[round(index_video)],(0,0))
         blit_video(screen,vid)
         create_button(screen,button_pause,pygame.mouse.get_pressed()[0])
         create_button(screen, button_despause, pygame.mouse.get_pressed()[0])
+        """custom"""
+        create_character((800,400))
 p1.function_normal = move_map
 p1.function_in_menu = change_map
 
 # p1.type_surface = 'variable'
-p1.minimap = mp
+#p1.minimap = mp
 p1.enem_class = enem
 p1.menu = Menu
 """p1.lista_img = move
