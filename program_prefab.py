@@ -746,9 +746,11 @@ trunks_spritesheet = pygame.image.load('personajes/trunks/14504 (1).png').conver
 piccolo_spritesheet = pygame.image.load('personajes/piccoro/14502.png').convert_alpha()
 #dante
 dante_spritesheet = pygame.image.load('personajes/dante sparda/dante.png').convert_alpha()
+#saitama
+saitama_spritesheet = pygame.image.load('personajes/saitama/saitama.png').convert_alpha()
 
 list_sprite = [goku_spritesheet,goku_ssg_spritesheet,goku_ultrainstinc_spritesheet,vegeta_spritesheet,
-               trunks_spritesheet,piccolo_spritesheet,dante_spritesheet]
+               trunks_spritesheet,piccolo_spritesheet,dante_spritesheet,saitama_spritesheet]
 index_sprite = 0
 index_sprite_enem = 0
 spritesheet = list_sprite[index_sprite]
@@ -764,7 +766,7 @@ def return_spritesheet(img,loc,dimensions,cantidad_frame,vertical_bool,horizonta
             loc[1] += dimensions[1]
     return listi
 scala_sprites = 1.5
-cantidad_de_imgs = 6
+cantidad_de_imgs = 7
 
 #probar
 up_sprite_list = [return_spritesheet(list_sprite[i],[1,68],(17,34),5,False,True,(False,False),scala_sprites) for i in range(0,cantidad_de_imgs+1)]
@@ -959,8 +961,8 @@ punto_referencia = (2, 3)
 lista_puntos = [(1, 2), (3, 4), (5, 6)]
 indice_cercano = indice_punto_mas_cercano(punto_referencia, lista_puntos)
 print("Ãndice del punto mÃ¡s cercano:", indice_cercano)
-def create_the_npcs(list_imgs,cantidad,area_pos,area_dimention,vel_tran,vel_move,dimention_surf,max_num_lag,life):
-    npcs = {'cantidad':cantidad,'list_img': list_imgs,'rect_list':[],'center_rect':[(0,0)],'vel_transition':vel_tran,'vel_move':vel_move,'life_list':life,'indice':[],'number_change':[],'scale':dimention_surf,'num_lag':0,'max_num_lag':max_num_lag}
+def create_the_npcs(list_imgs,cantidad,area_pos,area_dimention,vel_tran,vel_move,dimention_surf,max_num_lag,life,id_map):
+    npcs = {'id_map':id_map,'cantidad':cantidad,'list_img': list_imgs,'rect_list':[],'center_rect':[(0,0)],'vel_transition':vel_tran,'vel_move':vel_move,'life_list':life,'indice':[],'number_change':[],'max_num_change':3,'scale':dimention_surf,'num_lag':0,'max_num_lag':max_num_lag}
     indice_obtencion = 0
     tmp = max(npcs['center_rect'])
     indexi = npcs['center_rect'].index(tmp)
@@ -977,7 +979,7 @@ def create_the_npcs(list_imgs,cantidad,area_pos,area_dimention,vel_tran,vel_move
             npcs['rect_list'].append(pygame.Rect(npcs['center_rect'][indice_obtencion],npcs['scale']))
     return npcs
 #print(create_the_npcs(mainer,5,(0,0),(500,670),2,5,(32,32)))
-the_npc_0 = create_the_npcs([up_sprite_list[index_sprite_enem],prob[index_sprite_enem],left_sprite_list[index_sprite_enem],right_sprite_list[index_sprite_enem]],5,(0,0),(500,670),2,5,(32,32),40,200)
+the_npc_0 = create_the_npcs([up_sprite_list[index_sprite_enem],prob[index_sprite_enem],left_sprite_list[index_sprite_enem],right_sprite_list[index_sprite_enem]],5,(0,0),(500,670),2,5,(32,32),40,200,(0,0))
 def move_npc_for_enemy(self,npc_dict,distancia_mostrar):
     #avistamiento para ver
     #print(npc_dict['indice'])
@@ -1059,20 +1061,57 @@ def move_npc_for_npc(self,npc_dict,distancia_mostrar):
             if caminar == True:
                 npc_dict['rect_list'][indice][0] += npc_dict['vel_move']
         npc_dict['num_lag'] = 0
-pasos = {'delay_list':[5,0,7,8],'max_delay':20,'posiciones':[(40,420),(160,680),(40,1000)],'index':0,'max_index':2,'specific_index':0,'vel':0.1}
+pasos = {'delay_list':[5,7],'delay_list_inverse':[1,16],'max_delay':90,'posiciones':[(40,420),(160,680),(40,700),(500,370),(300,370)],'index':0,'max_index':4,'specific_index':0,'vel':0.7,
+         'vel_npc':5,'random_move':False,'time':0,'max_time':70}
 
-def create_tracks(dict,dict_track,per_pos):
+def npc_follow(screen,npc_dict,dict_track,per_pos,id_map_current):
+    indice = dict_track['specific_index']
+    if id_map_current == npc_dict['id_map']:
+        screen.blit(npc_dict['list_img'][npc_dict['indice'][indice]][round(npc_dict['number_change'][indice])], npc_dict['rect_list'][indice])
+    print(dict_track['posiciones'][round(dict_track['index'])])
+    #pro
+    #if (npc_dict['rect_list'][indice][0],npc_dict['rect_list'][indice][1]) == (dict_track['posiciones'][round(dict_track['index'])][0],dict_track['posiciones'][round(dict_track['index'])][1]):
+        #dict_track['index'] += 1
     #indice = indice_punto_mas_cercano(per_pos, dict['rect_list'])
-    if dict_track['index'] < dict_track['max_index']:
+    rand = random.randint(0,dict_track['max_delay'])
+    if dict_track['random_move'] == True:
+        if rand in dict_track['delay_list']:
+            if dict_track['index'] <= dict_track['max_index']:
+                dict_track['index'] += dict_track['vel']
+        if rand in dict_track['delay_list_inverse']:
+            if dict_track['index'] >= 0:
+                dict_track['index'] -= dict_track['vel']
+    if dict_track['random_move'] == False:
+        print(dict_track['time'])
+        dict_track['time'] += 1
+        if dict_track['time'] > dict_track['max_time']:
+            dict_track['index'] += dict_track['vel']
+            dict_track['time'] = 0
+        if dict_track['index'] > dict_track['max_index']:
+            dict_track['index'] = 0
+    """if dict_track['index'] < dict_track['max_index']:
         dict_track['index'] += dict_track['vel']
-    if dict_track['index'] >= dict_track['max_index']:
-        dict_track['index'] = 0
+    if dict_track['index'] == dict_track['max_index']:
+        dict_track['index'] = 0"""
 
-    if avistamiento('a',dict['rect_list'][dict_track['specific_index']],dict_track['posiciones'][dict_track['index']],10000):
-        print('a')
-def npc_follow(dict):
-    print('a')
-    #if anti_avistamiento()
+    if avistamiento('a',npc_dict['rect_list'][dict_track['specific_index']],dict_track['posiciones'][round(dict_track['index'])],10000):
+        npc_dict['number_change'][indice] += npc_dict['vel_transition']
+        if npc_dict['number_change'][indice] > npc_dict['max_num_change']:
+            npc_dict['number_change'][indice] = 0
+        if npc_dict['rect_list'][indice][1] > dict_track['posiciones'][round(dict_track['index'])][1]:
+            npc_dict['rect_list'][indice][1] -= dict_track['vel_npc']
+            npc_dict['indice'][indice] = 0
+        elif npc_dict['rect_list'][indice][1] < dict_track['posiciones'][round(dict_track['index'])][1]:
+            npc_dict['rect_list'][indice][1] += dict_track['vel_npc']
+            npc_dict['indice'][indice] = 1
+        """left right"""
+        if npc_dict['rect_list'][indice][0] > dict_track['posiciones'][round(dict_track['index'])][0]:
+            npc_dict['rect_list'][indice][0] -= dict_track['vel_npc']
+            npc_dict['indice'][indice] = 2
+        elif npc_dict['rect_list'][indice][0] < dict_track['posiciones'][round(dict_track['index'])][0]:
+            npc_dict['rect_list'][indice][0] += dict_track['vel_npc']
+            npc_dict['indice'][indice] = 3
+
 """interactuar"""
 def create_text(cuadro_de_texto,palabras,max_delay,color_text,scale_text,maximo_de_palabras,delay_list):
     dicti = {'cuadro':cuadro_de_texto,'palabras':palabras,'delay_list':delay_list,'max_delay':max_delay,'color':color_text,'scale':scale_text,'maximo_de_palabras_index':maximo_de_palabras}
@@ -1150,6 +1189,14 @@ def za_warudo():
     enem.vel = 0
     enem.num_change_enem = 0
     enem.damage = 0
+def yellow_temperance():
+    global index_sprite
+    p1.vida_value = 500
+    index_sprite = index_sprite_enem
+def one_punch():
+    p1.vida_value = 400
+    p1.damage = 50
+    enem.damage = 0
 def cancel():
     p1.vel_trasicion_img = 0.15
     p1.velocidad = 5
@@ -1167,8 +1214,12 @@ crazy_diamond = {'img':t,'img_pos':(0,0),'portada':pygame.transform.rotozoom(pyg
                    'vel_charge':1,'delay_damage':300,'function':za_warudo,'bool_atack':False}
 yellow_temperance = {'img':t,'img_pos':(0,0),'portada':pygame.transform.rotozoom(pygame.image.load('portraits/stands/yellow-temperance.png'),0,0.5),
                      'portada_pos':(20,120),'damage':200,'increase':5,'time':300,'max_time':300,'time_pos':[20,200],
-                   'vel_charge':1,'delay_damage':300,'function':za_warudo,'bool_atack':False}
-skills = {'skills':[za_warudo_skill,crazy_diamond,yellow_temperance],'index':0,'max_index':1}
+                   'vel_charge':1,'delay_damage':300,'function':yellow_temperance,'bool_atack':False}
+One_punch = {'img':t,'img_pos':(0,0),'portada':pygame.transform.rotozoom(pygame.image.load('portraits/stands/ONE-PUNCH-MAN.png'),0,0.5),
+                     'portada_pos':(20,120),'damage':200,'increase':5,'time':300,'max_time':3000000,'time_pos':[20,200],
+                   'vel_charge':100,'delay_damage':300,'function':one_punch,'bool_atack':False}
+
+skills = {'skills':[za_warudo_skill,crazy_diamond,yellow_temperance,One_punch],'index':3,'max_index':1}
 def use_skills(pantalla,dict,bool_use):
     """mostrar"""
     pantalla.blit(dict['portada'], dict['portada_pos'])
@@ -1470,9 +1521,14 @@ west_city_surf_2 = [return_spritesheet(pygame.image.load('map_copy.png').convert
 west_city_surf_3 = [return_spritesheet(pygame.image.load('map_copy_transparent_2.png').convert_alpha(),[0,0],(1280,720),2,False,True,(False,False),1),
                     return_spritesheet(pygame.image.load('map_copy_transparent_2.png').convert_alpha(),[0,720],(1280,720),2,False,True,(False,False),1),
                     return_spritesheet(pygame.image.load('map_copy_transparent_2.png').convert_alpha(),[0,1440],(1280,720),2,False,True,(False,False),1)]
-west_city = {'surf_normal':west_city_surf_1,'index_x':0,'index_y':0,
+west_city = {'surf_normal':west_city_surf_1,'index_x':0,'index_y':0,'max_index_x':1,'max_index_y':2,
+             'surf_collide':west_city_surf_2,'surf_alpha':west_city_surf_3}
+capsule_corp = {'surf_normal':west_city_surf_1,'index_x':0,'index_y':0,'max_index_x':1,'max_index_y':2,
              'surf_collide':west_city_surf_2,'surf_alpha':west_city_surf_3}
 
+def blit_map(dict):
+    print('map')
+world_map = {'maps':[west_city,capsule_corp],'index':0,'max_index':1}
 
 
 """definir algo"""
@@ -1491,7 +1547,7 @@ mapita = [pygame.image.load('lugares/isla_kame.png').convert(),pygame.image.load
 portraits = [pygame.image.load('portraits/goku.png').convert(),pygame.image.load('portraits/goku_ssg.png').convert(),
                pygame.image.load('portraits/goku_ui.png').convert(),pygame.image.load('portraits/vegeta.png').convert(),
                pygame.image.load('portraits/trunks.png').convert(),pygame.image.load('portraits/piccoro.png').convert(),
-             pygame.image.load('portraits/dante.png').convert()]
+             pygame.image.load('portraits/dante.png').convert(),pygame.transform.rotozoom(pygame.image.load('portraits/saitama.png').convert(),0,0.2)]
 
 
 portrait_modos = [pygame.image.load('mode_titles/training.png').convert_alpha(),pygame.image.load('mode_titles/History.png').convert_alpha(),pygame.image.load('mode_titles/Tournament.png').convert_alpha(),
@@ -1509,29 +1565,29 @@ def blit_video(screen,dict):
         #dict['bool_pause'] = True
         dict['indice'] = 0
     screen.blit(dict['video_frames'][round(dict['indice'])],dict['pos'])
-video_ghostface = {'video_frames':charge_img('videos/frames/bishoujo_ghostface/Video1-Frame',20,'.jpg',1.5,0),'max_frames':5000,
+video_ghostface = {'video_frames':charge_img('videos/frames/bishoujo_ghostface/Video1-Frame',5,'.jpg',0.5 ,0),'max_frames':5000,
+                   'sound':pygame.mixer.music.load('videos/sonido/bishoujo_ghostface.ogg'),'vel':0.8,'indice':0,'pos':(0,0),
+                   'bool_pause':False,'restart':False
+                   }
+video_bleach = {'video_frames':charge_img('videos/frames/ichigo vs kenpachi/Video1-Frame',1,'.jpg',0.5,0),'max_frames':999,
                    'sound':pygame.mixer.music.load('videos/sonido/bishoujo_ghostface.ogg'),'vel':0.8,'indice':0,'pos':(0,0),
                    'bool_pause':False
                    }
-video_bleach = {'video_frames':charge_img('videos/frames/ichigo vs kenpachi/Video1-Frame',100,'.jpg',0.5,0),'max_frames':99,
+video_goku_sad = {'video_frames':charge_img('videos/frames/goku sad/Video1-Frame',1,'.jpg',5,0),'max_frames':90,
                    'sound':pygame.mixer.music.load('videos/sonido/bishoujo_ghostface.ogg'),'vel':0.8,'indice':0,'pos':(0,0),
                    'bool_pause':False
                    }
-video_goku_sad = {'video_frames':charge_img('videos/frames/goku sad/Video1-Frame',100,'.jpg',5,0),'max_frames':90,
-                   'sound':pygame.mixer.music.load('videos/sonido/bishoujo_ghostface.ogg'),'vel':0.8,'indice':0,'pos':(0,0),
-                   'bool_pause':False
-                   }
-video_saitama_meme = {'video_frames':charge_img('videos/frames/saitama achicado/Video1-Frame',140,'.jpg',0.5,0),'max_frames':130,
+video_saitama_meme = {'video_frames':charge_img('videos/frames/saitama achicado/Video1-Frame',1,'.jpg',0.5,0),'max_frames':130,
                    'sound':pygame.mixer.music.load('videos/sonido/bishoujo_ghostface.ogg'),'vel':1.5,'indice':0,'pos':(0,0),
                    'bool_pause':False
                    }
-video_dante_dr_fauss = {'video_frames':charge_img('videos/frames/dante dr_fauss/Video1-Frame',58,'.jpg',0.5,0),'max_frames':56,
+video_dante_dr_fauss = {'video_frames':charge_img('videos/frames/dante dr_fauss/Video1-Frame',1,'.jpg',0.5,0),'max_frames':56,
                    'sound':pygame.mixer.music.load('videos/sonido/bishoujo_ghostface.ogg'),'vel':0.8,'indice':0,'pos':(0,0),
                    'bool_pause':False
                    }
 videos = [video_ghostface,video_bleach,video_goku_sad,
           video_saitama_meme,video_dante_dr_fauss]
-index_video = 4
+index_video = 0
 vid = videos[index_video]
 
 """botones"""
@@ -1547,7 +1603,7 @@ def restar_indice_lugares():
         indice_lugares -= vel_ind
 def suma_index_sprite():
     global index_sprite
-    if index_sprite < 6:
+    if index_sprite < 7:
         index_sprite += vel_ind
 def resta_index_sprites():
     global index_sprite
@@ -1559,7 +1615,7 @@ def resta_index_sprites_enem():
         index_sprite_enem -= vel_ind
 def suma_index_sprite_enem():
     global index_sprite_enem
-    if index_sprite_enem < 6:
+    if index_sprite_enem < 7:
         index_sprite_enem += vel_ind
 
 def sum_index_mode():
@@ -1676,18 +1732,39 @@ ubis_in_map = [tienda_de_antiguedades['place_pos'],tienda_de_antiguedades['place
 
 """npc xd"""
 spritesheet_bulma = pygame.image.load('personajes/To npc/bulma.png')
-bulma = create_the_npcs([return_spritesheet(spritesheet_bulma,[60,85],(20,40),4,False,True,(False,False),1.5),
-                         return_spritesheet(spritesheet_bulma,[60,9],(20,40),4,False,True,(False,False),1.5),
-                         return_spritesheet(spritesheet_bulma,[60,46],(20,40),4,False,True,(True,False),1.5),
-                         return_spritesheet(spritesheet_bulma,[60,46],(20,40),4,False,True,(False,False),1.5)],
-                        1,(30,70),(400,400),2,2,(32,32),1,300)
+pasos_bulma = {'delay_list':[5,7],'delay_list_inverse':[1,16],'max_delay':90,'posiciones':[(880,600),(1100,600)],'index':0,'max_index':1,'specific_index':0,'vel':0.7,
+         'vel_npc':2,'random_move':False,'time':0,'max_time':70}
+bulma = create_the_npcs([return_spritesheet(spritesheet_bulma,[60,85],(22,38),4,False,True,(False,False),1.5),
+                         return_spritesheet(spritesheet_bulma,[60,9],(22,38),4,False,True,(False,False),1.5),
+                         return_spritesheet(spritesheet_bulma,[60,46],(22,38),4,False,True,(True,False),1.5),
+                         return_spritesheet(spritesheet_bulma,[60,46],(22,38),4,False,True,(False,False),1.5)],
+                        1,(30,70),(400,400),0.15,2,(32,32),1,300,(1,0))
+#milk
 spritesheet_milk = pygame.image.load('personajes/To npc/milk.png')
-milk = create_the_npcs([return_spritesheet(spritesheet_milk,[60,85],(20,40),4,False,True,(False,False),1.5),
-                         return_spritesheet(spritesheet_milk,[60,9],(20,40),4,False,True,(False,False),1.5),
-                         return_spritesheet(spritesheet_milk,[60,46],(20,40),4,False,True,(True,False),1.5),
-                         return_spritesheet(spritesheet_milk,[60,46],(20,40),4,False,True,(False,False),1.5)],
-                        1,(30,70),(400,400),2,2,(32,32),1,300)
+pasos_milk = {'delay_list':[5,7],'delay_list_inverse':[1,16],'max_delay':90,'posiciones':[(880,100),(1100,100)],'index':0,'max_index':1,'specific_index':0,'vel':0.7,
+         'vel_npc':2,'random_move':False,'time':0,'max_time':50}
+milk = create_the_npcs([return_spritesheet(spritesheet_milk,[60,85],(22,38),4,False,True,(False,False),1.5),
+                         return_spritesheet(spritesheet_milk,[60,9],(22,38),4,False,True,(False,False),1.5),
+                         return_spritesheet(spritesheet_milk,[60,46],(22,38),4,False,True,(True,False),1.5),
+                         return_spritesheet(spritesheet_milk,[60,46],(22,38),4,False,True,(False,False),1.5)],
+                        1,(30,70),(400,400),0.15,2,(32,32),1,300,(1,0))
+"""text_milk_normal = create_text()
+text_milk_nearby = create_text()
+def text_blit_by_closeness():"""
 
+#broly
+spritesheet_broly = pygame.image.load('personajes/broly/156873.png').convert_alpha()
+pasos_broly = {'delay_list':[5,7],'delay_list_inverse':[1,16],'max_delay':90,'posiciones':[(40,420),(160,680),(40,700),(500,370),(300,370)],'index':0,'max_index':4,'specific_index':0,'vel':0.7,
+         'vel_npc':5,'random_move':False,'time':0,'max_time':70}
+broly = create_the_npcs([return_spritesheet(spritesheet_broly,[160,101],(50,65),4,False,True,(False,False),1.5),
+                         return_spritesheet(spritesheet_broly,[161,19],(50,65),4,False,True,(False,False),1.5),
+                         return_spritesheet(spritesheet_broly,[165,172],(50,65),4,False,True,(True,False),1.5),
+                         return_spritesheet(spritesheet_broly,[165,172],(50,65),4,False,True,(False,False),1.5)],
+                        1,(30,70),(400,400),0.15,9,(32,32),30,300,(1,0))
+
+"""event"""
+def create_cinematic():
+    print('c')
 def move_map(self):
 
     global contador_de_salida,indice_west_city,west_city,indice_surfaces,numero_de_cambio,west_city_x,west_city_y,index_sprite,pantalla
@@ -1736,6 +1813,7 @@ def move_map(self):
         #west_copy_subsurf = pygame.Surface.subsurface(map_copy, (west_city_x, west_city_y),(1280, 720)).convert()
 
         #screen.blit(west_city_principal_subsurf,(0,0))
+        id_map_current = (west_city['index_y'], west_city['index_x'])
         screen.blit(west_city['surf_normal'][west_city['index_y']][west_city['index_x']],(0,0))
         create_place(screen, tienda_de_antiguedades, collision_in_the_map, pygame.mouse.get_pressed()[0],
                      pygame.mouse.get_pressed()[2], p1.s_rect,(west_city['index_y'],west_city['index_x']))
@@ -1754,7 +1832,7 @@ def move_map(self):
         screen.blit(portraits[round(index_sprite_enem)], (1175, 0))
 
         #create_character(self,mainer)
-        use_skills(screen,skills['skills'][round(skills['index']+2)],pygame.mouse.get_pressed()[2])
+        use_skills(screen,skills['skills'][round(skills['index'])],pygame.mouse.get_pressed()[2])
         for rect_list in the_npc_0['rect_list']:
             rex = [p1.s_rect,enem.e_rect,rect_list]
             for rects in rex:
@@ -1762,30 +1840,35 @@ def move_map(self):
                     collide_for_color(self,(248,0,0),rects,(1200,600),west_city['surf_collide'][west_city['index_y']][west_city['index_x']],1,(32,32))
         #draw_the_surf_in_other(invisible_object(p1.s_rect,(32,32),west_copy_subsurf,color_permitido),map_copy_alpha)"""
         #move_npc_for_enemy(self,the_npc_0,300)
-        move_npc_for_npc(self,the_npc_0,300)
-        move_npc_for_npc(self,bulma,800)
-        move_npc_for_npc(self, milk, 800)
+        #move_npc_for_npc(self,the_npc_0,300)
+        npc_follow(screen,bulma,pasos_bulma,p1.s_rect,id_map_current)
+        npc_follow(screen, milk,pasos_milk,p1.s_rect, id_map_current)
+        #move_npc_for_npc(self,broly,2000)
+        #npc_follow(screen,broly,pasos_broly,p1.s_rect,id_map_current)
         #create_character(self,mainer)
         #screen.blit(prob[index_sprite][index_sprite],(0,0))
         #move_in_map(self,500,recto,objetos_de_west_city)
         """sum"""
-        if west_city['index_y'] < 2:
-            if p1.s_rect[1] > 700:
-                west_city['index_y'] += 1
-                p1.s_rect[1] = 40
-        if west_city['index_x'] < 1:
-            if p1.s_rect[0] > 1270:
-                west_city['index_x'] += 1
-                p1.s_rect[0] = 0
+        for rect_list in the_npc_0['rect_list']:
+            rex = [p1.s_rect,enem.e_rect,rect_list]
+            if west_city['index_y'] < 2:
+                if p1.s_rect[1] > 700:
+                    west_city['index_y'] += 1
+                    p1.s_rect[1] = 40
+            if west_city['index_x'] < 1:
+                if p1.s_rect[0] > 1270:
+                    west_city['index_x'] += 1
+                    p1.s_rect[0] = 20
+                    rex[1][0] -= 1280
         """res"""
-        if west_city['index_y'] > -1:
-            if p1.s_rect[1] < 0:
+        if west_city['index_y'] > 0:
+            if p1.s_rect[1] < 10:
                 west_city['index_y'] -= 1
-                p1.s_rect[1] = 0
-        if west_city['index_x'] > -1:
-            if p1.s_rect[0] < 0:
+                p1.s_rect[1] = 700
+        if west_city['index_x'] > 0:
+            if p1.s_rect[0] < 10:
                 west_city['index_x'] -= 1
-                p1.s_rect[0] = 0
+                p1.s_rect[0] = 1260
     elif map_activates == 'training':
         p1.vida_value = 300
         enem.vida = 300
@@ -1811,16 +1894,15 @@ def change_map(self):
         auras = [aura_ej, aura_down, aura_left, aura_right,
                  globals()[f'aura_punch_up_{num_rand}'], globals()[f'aura_punch_down_{num_rand}'], globals()[f'aura_punch_left_{num_rand}'], globals()[f'aura_punch_right_{num_rand}'],
                  aura_kekkai_up, aura_kekkai_down, aura_kekkai_left, aura_kekkai_right]
-        #blit_aura(screen, auras[self.indice][round(self.num_change)], p1.s_rect, 5)
+        blit_aura(screen, auras[self.indice][round(self.num_change)], p1.s_rect, 5)
         #blit_sword(screen,nozarashi,p1.s_rect,enem.e_rect,self.indice,pygame.mouse.get_pressed()[2])
         #blit_effect(screen,pygame.mouse.get_pressed()[0],self.indice,p1.s_rect,effect_Tsukiyubi)
         if p1.s_rect.colliderect(enem.e_rect):
             press_button_time(screen,[0,8,9],12,button_no_press,button_press,(p1.s_rect[0]-50,p1.s_rect[1]+20))
-        #hablar(texto_normal,[enem.e_rect],p1.s_rect)
+        hablar(texto_normal,[enem.e_rect],p1.s_rect)
+        hablar(texto_normal, [p1.s_rect], p1.s_rect)
         if map_activates == 'history':
             screen.blit(west_city['surf_alpha'][west_city['index_y']][west_city['index_x']],(0,0))
-    if pygame.mouse.get_pressed()[1] == True:
-        map_activates = 'training'
 
     if menu.active == True:
 
@@ -1841,7 +1923,7 @@ def change_map(self):
         create_text_by_font_img(screen, posiciones_b[num_change], font_1, posicion_de_las_letras[num_change])
 
         #video
-        blit_video(screen,vid)
+        #blit_video(screen,vid)
         create_button(screen,button_pause,pygame.mouse.get_pressed()[0])
         create_button(screen, button_despause, pygame.mouse.get_pressed()[0])
         """custom"""
