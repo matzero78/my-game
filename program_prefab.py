@@ -1064,10 +1064,11 @@ def move_npc_for_npc(self,npc_dict,distancia_mostrar):
 pasos = {'delay_list':[5,7],'delay_list_inverse':[1,16],'max_delay':90,'posiciones':[(40,420),(160,680),(40,700),(500,370),(300,370)],'index':0,'max_index':4,'specific_index':0,'vel':0.7,
          'vel_npc':5,'random_move':False,'time':0,'max_time':70}
 
-def npc_follow(screen,npc_dict,dict_track,per_pos,id_map_current):
+def npc_follow(screen,npc_dict,dict_track,per_pos,id_map_current,bool_exist):
     indice = dict_track['specific_index']
     if id_map_current == npc_dict['id_map']:
-        screen.blit(npc_dict['list_img'][npc_dict['indice'][indice]][round(npc_dict['number_change'][indice])], npc_dict['rect_list'][indice])
+        if bool_exist == True:
+            screen.blit(npc_dict['list_img'][npc_dict['indice'][indice]][round(npc_dict['number_change'][indice])], npc_dict['rect_list'][indice])
     print(dict_track['posiciones'][round(dict_track['index'])])
     #pro
     #if (npc_dict['rect_list'][indice][0],npc_dict['rect_list'][indice][1]) == (dict_track['posiciones'][round(dict_track['index'])][0],dict_track['posiciones'][round(dict_track['index'])][1]):
@@ -1113,12 +1114,13 @@ def npc_follow(screen,npc_dict,dict_track,per_pos,id_map_current):
             npc_dict['indice'][indice] = 3
 
 """interactuar"""
-def create_text(cuadro_de_texto,palabras,max_delay,color_text,scale_text,maximo_de_palabras,delay_list):
-    dicti = {'cuadro':cuadro_de_texto,'palabras':palabras,'delay_list':delay_list,'max_delay':max_delay,'color':color_text,'scale':scale_text,'maximo_de_palabras_index':maximo_de_palabras}
+def create_text(cuadro_de_texto,palabras,max_delay,color_text,scale_text,maximo_de_palabras,delay_list,max_time,id_map):
+    dicti = {'cuadro':cuadro_de_texto,'palabras':palabras,'delay_list':delay_list,'max_delay':max_delay,'color':color_text,'scale':scale_text,'index':0,'maximo_de_palabras_index':maximo_de_palabras,
+             'random_move':False,'time':0,'max_time':max_time,'id_map':id_map}
     return dicti
 texto_normal = create_text(pygame.transform.rotozoom(pygame.image.load('multiverse/cuadros de texto/cuadro_1.png'),0,0.1),
                            ['Ora','ora','inutil','bastardo'],
-                           50,(0,0,0),24,3,[0,5,9,24,7,8])
+                           50,(0,0,0),24,3,[0,5,9,24,7,8],60,(0,0))
 def hablar(dict,pos_list,personaje_pos):
     indice = indice_punto_mas_cercano(personaje_pos, pos_list)
     rand = random.randint(1,dict['max_delay'])
@@ -1127,9 +1129,17 @@ def hablar(dict,pos_list,personaje_pos):
     #if dict['delay'] > dict['max_delay']:
     #if rand == 5:
     screen.blit(dict['cuadro'],(pos_list[indice][0] - 90,pos_list[indice][1] - 80))
-    if rand in dict['delay_list']:
-        string_blit(texto,(pos_list[indice][0] - 60,pos_list[indice][1] - 50),dict['scale'],dict['color'])
-
+    if dict['random_move'] == True:
+        if rand in dict['delay_list']:
+            string_blit(texto,(pos_list[indice][0] - 60,pos_list[indice][1] - 50),dict['scale'],dict['color'])
+    if dict['random_move'] == False:
+        string_blit(dict['palabras'][dict['index']],(pos_list[indice][0] - 60,pos_list[indice][1] - 50),dict['scale'],dict['color'])
+        dict['time'] += 1
+        if dict['time'] > dict['max_time']:
+            dict['index'] += 1
+            dict['time'] = 0
+        if dict['index'] > dict['maximo_de_palabras_index']:
+            dict['index'] = 0
 tienda_de_antiguedades = {'id':(0,0),'place_img':pygame.image.load('places/restaurant/159967 (1).png'),'place_pos':[218,138],'place_pos_door':pygame.Rect([485,285],(40,60)),
                           'door_color_detect':(0,255,0),
                           'place_mask_collision':pygame.image.load('places/restaurant/mask.png'),'color_collision':(255,0,0),
@@ -1206,7 +1216,7 @@ def cancel():
     enem.damage = 5
 #def reiniciar(list_a_reiniciar,list_orden_reinicio):
 
-za_warudo_skill = {'img':t,'img_pos':(0,0),'portada':pygame.transform.rotozoom(pygame.image.load('portraits/stands/THE-WORLD_2.png'),0,0.5),
+za_warudo_skill = {'img':t,'img_pos':(0,0),'portada':pygame.transform.scale(pygame.image.load('portraits/stands/THE-WORLD_2.png'),(150,30)),
                    'portada_pos':(20,120),'damage':200,'increase':5,'time':300,'max_time':300,'time_pos':[20,200],
                    'vel_charge':1,'delay_damage':300,'function':za_warudo,'bool_atack':False}
 crazy_diamond = {'img':t,'img_pos':(0,0),'portada':pygame.transform.rotozoom(pygame.image.load('portraits/stands/THE-WORLD_2.png'),0,0.5),
@@ -1219,7 +1229,7 @@ One_punch = {'img':t,'img_pos':(0,0),'portada':pygame.transform.rotozoom(pygame.
                      'portada_pos':(20,120),'damage':200,'increase':5,'time':300,'max_time':3000000,'time_pos':[20,200],
                    'vel_charge':100,'delay_damage':300,'function':one_punch,'bool_atack':False}
 
-skills = {'skills':[za_warudo_skill,crazy_diamond,yellow_temperance,One_punch],'index':3,'max_index':1}
+skills = {'skills':[za_warudo_skill,yellow_temperance,One_punch],'index':0,'max_index':2}
 def use_skills(pantalla,dict,bool_use):
     """mostrar"""
     pantalla.blit(dict['portada'], dict['portada_pos'])
@@ -1640,6 +1650,13 @@ def res_index_pantalla():
     global index_pantalla
     if index_pantalla > -1:
         index_pantalla -= vel_ind
+
+def res_skills_index():
+    if skills['index'] > -1:
+        skills['index'] -= vel_ind
+def sum_skills_index():
+    if skills['index'] < skills['max_index']:
+        skills['index'] += vel_ind
 """guardar"""
 cosas_pa_guardar = {}
 def save(name_of_py,list_surfs):
@@ -1699,6 +1716,13 @@ button_sum_ind_screen = {'escala': (32, 32),'pos':(1000,600), 'color': (255, 0, 
 button_res_ind_screen = {'escala': (32, 32),'pos':(1100,600), 'color': (255, 0, 0),
                            'string':'<','string_scale':40,'string_color':(255,255,255),
                            'funcion':res_index_pantalla}
+
+button_sum_ind_skills = {'escala': (32, 32),'pos':(80,150), 'color': (255, 0, 0),
+                           'string':'+','string_scale':40,'string_color':(255,255,255),
+                           'funcion':sum_skills_index}
+button_res_ind_skills = {'escala': (32, 32),'pos':(40,150), 'color': (255, 0, 0),
+                           'string':'-','string_scale':40,'string_color':(255,255,255),
+                           'funcion':res_skills_index}
 """fonts"""
 def encontrar_posiciones(palabra, lista):
     posiciones = [i for i, elemento in enumerate(lista) if elemento == palabra]
@@ -1739,6 +1763,12 @@ bulma = create_the_npcs([return_spritesheet(spritesheet_bulma,[60,85],(22,38),4,
                          return_spritesheet(spritesheet_bulma,[60,46],(22,38),4,False,True,(True,False),1.5),
                          return_spritesheet(spritesheet_bulma,[60,46],(22,38),4,False,True,(False,False),1.5)],
                         1,(30,70),(400,400),0.15,2,(32,32),1,300,(1,0))
+text_bulma_normal = create_text(pygame.transform.rotozoom(pygame.image.load('portraits/text box/normal.png'),0,1),
+                           ['...','....'],
+                           50,(255,255,255),24,1,[0,5,9,24,7,8],10,(1,0))
+text_bulma_nearby = create_text(pygame.transform.rotozoom(pygame.image.load('portraits/text box/emergencia.png'),0,1),
+                           ['habla con el'],
+                           50,(255,255,255),24,0,[0,5,9,24,7,8],60,(1,0))
 #milk
 spritesheet_milk = pygame.image.load('personajes/To npc/milk.png')
 pasos_milk = {'delay_list':[5,7],'delay_list_inverse':[1,16],'max_delay':90,'posiciones':[(880,100),(1100,100)],'index':0,'max_index':1,'specific_index':0,'vel':0.7,
@@ -1748,10 +1778,20 @@ milk = create_the_npcs([return_spritesheet(spritesheet_milk,[60,85],(22,38),4,Fa
                          return_spritesheet(spritesheet_milk,[60,46],(22,38),4,False,True,(True,False),1.5),
                          return_spritesheet(spritesheet_milk,[60,46],(22,38),4,False,True,(False,False),1.5)],
                         1,(30,70),(400,400),0.15,2,(32,32),1,300,(1,0))
-"""text_milk_normal = create_text()
-text_milk_nearby = create_text()
-def text_blit_by_closeness():"""
-
+text_milk_normal = create_text(pygame.transform.rotozoom(pygame.image.load('portraits/text box/normal.png'),0,1),
+                           ['...','......'],
+                           50,(255,255,255),24,1,[0,5,9,24,7,8],10,(1,0))
+text_milk_nearby = create_text(pygame.transform.rotozoom(pygame.image.load('portraits/text box/emergencia.png'),0,1),
+                           ['ENTRA YA'],
+                           50,(255,255,255),24,0,[0,5,9,24,7,8],60,(1,0))
+def text_blit_by_far(per_pos,speaker_pos,distance_speak,text_no_far,text_far,id_map_current,bool_exist):
+    if bool_exist == True:
+        if id_map_current == text_no_far['id_map']:
+            if avistamiento('a',per_pos,speaker_pos,distance_speak):
+                hablar(text_no_far,[speaker_pos],per_pos)
+        if id_map_current == text_far['id_map']:
+            if anti_avistamiento('a',per_pos,speaker_pos,distance_speak):
+                hablar(text_far, [speaker_pos], per_pos)
 #broly
 spritesheet_broly = pygame.image.load('personajes/broly/156873.png').convert_alpha()
 pasos_broly = {'delay_list':[5,7],'delay_list_inverse':[1,16],'max_delay':90,'posiciones':[(40,420),(160,680),(40,700),(500,370),(300,370)],'index':0,'max_index':4,'specific_index':0,'vel':0.7,
@@ -1763,8 +1803,11 @@ broly = create_the_npcs([return_spritesheet(spritesheet_broly,[160,101],(50,65),
                         1,(30,70),(400,400),0.15,9,(32,32),30,300,(1,0))
 
 """event"""
-def create_cinematic():
-    print('c')
+
+
+
+"""viaje"""
+#def puente_map():
 def move_map(self):
 
     global contador_de_salida,indice_west_city,west_city,indice_surfaces,numero_de_cambio,west_city_x,west_city_y,index_sprite,pantalla
@@ -1827,6 +1870,8 @@ def move_map(self):
         create_button(screen,button_res_index_sprite_enem,pygame.mouse.get_pressed()[0])
         create_button(screen,button_sum_index_sprite_enem,pygame.mouse.get_pressed()[0])
 
+        create_button(screen, button_res_ind_skills, pygame.mouse.get_pressed()[0])
+        create_button(screen, button_sum_ind_skills, pygame.mouse.get_pressed()[0])
 
         screen.blit(portraits[round(index_sprite)],(35,0))
         screen.blit(portraits[round(index_sprite_enem)], (1175, 0))
@@ -1841,8 +1886,8 @@ def move_map(self):
         #draw_the_surf_in_other(invisible_object(p1.s_rect,(32,32),west_copy_subsurf,color_permitido),map_copy_alpha)"""
         #move_npc_for_enemy(self,the_npc_0,300)
         #move_npc_for_npc(self,the_npc_0,300)
-        npc_follow(screen,bulma,pasos_bulma,p1.s_rect,id_map_current)
-        npc_follow(screen, milk,pasos_milk,p1.s_rect, id_map_current)
+        npc_follow(screen,bulma,pasos_bulma,p1.s_rect,id_map_current,True)
+        npc_follow(screen, milk,pasos_milk,p1.s_rect, id_map_current,True)
         #move_npc_for_npc(self,broly,2000)
         #npc_follow(screen,broly,pasos_broly,p1.s_rect,id_map_current)
         #create_character(self,mainer)
@@ -1899,8 +1944,11 @@ def change_map(self):
         #blit_effect(screen,pygame.mouse.get_pressed()[0],self.indice,p1.s_rect,effect_Tsukiyubi)
         if p1.s_rect.colliderect(enem.e_rect):
             press_button_time(screen,[0,8,9],12,button_no_press,button_press,(p1.s_rect[0]-50,p1.s_rect[1]+20))
-        hablar(texto_normal,[enem.e_rect],p1.s_rect)
-        hablar(texto_normal, [p1.s_rect], p1.s_rect)
+        # hablar(texto_normal,[enem.e_rect],p1.s_rect)
+        #hablar(texto_normal, [p1.s_rect], p1.s_rect)
+        id_map_current = (west_city['index_y'], west_city['index_x'])
+        text_blit_by_far(p1.s_rect,milk['rect_list'][0],500,text_milk_nearby,text_milk_normal,id_map_current,True)
+        text_blit_by_far(p1.s_rect, bulma['rect_list'][0], 500, text_bulma_nearby, text_bulma_normal,id_map_current,True)
         if map_activates == 'history':
             screen.blit(west_city['surf_alpha'][west_city['index_y']][west_city['index_x']],(0,0))
 
@@ -1911,6 +1959,7 @@ def change_map(self):
 
         create_button(screen,button_res_index_mode,pygame.mouse.get_pressed()[0])
         create_button(screen, button_sum_index_mode, pygame.mouse.get_pressed()[0])
+
 
         #create_button(screen, button_sum_ind_screen, pygame.mouse.get_pressed()[0])
         #create_button(screen, button_res_ind_screen, pygame.mouse.get_pressed()[0])
@@ -1927,13 +1976,13 @@ def change_map(self):
         create_button(screen,button_pause,pygame.mouse.get_pressed()[0])
         create_button(screen, button_despause, pygame.mouse.get_pressed()[0])
         """custom"""
-        create_character((800,400))
+        #create_character((800,400))
 p1.function_normal = move_map
 p1.function_in_menu = change_map
 
 # p1.type_surface = 'variable'
 #p1.minimap = mp
-p1.enem_class = enem
+#p1.enem_class = enem
 p1.menu = Menu
 """p1.lista_img = move
 p1.punch = punch
