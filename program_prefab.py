@@ -2,10 +2,17 @@
 import math
 import random
 import pygame
+import copy
 from xd import value
 
 from utiles import mostrar_desde_variable
-
+from funciones_de_calculo import *
+from funciones_de_diccionario import *
+from funciones_para_mostrar_img import *
+from funciones_para_guardar_img import *
+from videos import *
+from buttons import *
+from metas_xp import value_metas
 """ancho y alto,fps"""
 width = 1280
 heigth = 720
@@ -15,98 +22,273 @@ lista_de_pantalla = [pygame.RESIZABLE,pygame.FULLSCREEN]
 index_pantalla = 0
 pantalla = lista_de_pantalla[index_pantalla]
 pygame.init()
+pygame.joystick.init()
+joysticks = []
 screen = pygame.display.set_mode((width, heigth), pantalla)
 pygame.display.set_caption('')
 icon = pygame.Surface((32,32))
 pygame.display.set_icon(icon)
 
 
+def return_spritesheet_with_auto_width(img,pos,cantidad_frame,color_back):
+    listi = []
+    index_img = 0
+    anchos = []
+    ancho = 0
+    alto = 30
+    detect_color = img.get_at((pos[0], pos[1]))
+    for i in range(1,cantidad_frame+1):
+        pos[0] += 1
+        if detect_color == color_back:
+            anchos.append(ancho)
+            ancho = 0
+            if encontrar_maximo_de_elementos(anchos) > 0:
+                listi.append(pygame.Surface.subsurface(img,(pos[0],pos[1]),(anchos[index_img],alto))) 
+            if encontrar_maximo_de_elementos(listi) > 0:
+                index_img += 1
+        if detect_color != color_back:
+            ancho += 1
+    return listi
 
 
 
+def erase_color_list(surface,list_color,color_replace):
+    for x in range(surface.get_width()):
+        for y in range(surface.get_height()):
+            color = surface.get_at((x,y))
+            if color in list_color:
+                surface.set_at((x, y), color_replace)
+    return surface
+def return_spritesheet(img,loc,dimensions,cantidad_frame,vertical_bool,horizontal_bool,list_bool_flip,scale):
+    listi = []
+    for i in range(1,cantidad_frame+1):
+        listi.append(pygame.transform.flip(pygame.transform.rotozoom(pygame.Surface.subsurface(img,(loc[0],loc[1]),(dimensions[0],dimensions[1])),0,scale),list_bool_flip[0],list_bool_flip[1]))
+        if horizontal_bool == True:
+            loc[0] += dimensions[0]
+        if vertical_bool == True:
+            loc[1] += dimensions[1]
+    return listi
+def return_spritesheet_V2(img,loc,dimensions,cantidad_frame,vertical_bool,horizontal_bool,reverse_horizontal_bool,reverse_vertical_bool,list_bool_flip,scale):
+    listi = []
+    for i in range(1,cantidad_frame+1):
+        listi.append(pygame.transform.flip(pygame.transform.rotozoom(pygame.Surface.subsurface(img,(loc[0],loc[1]),(dimensions[0],dimensions[1])),0,scale),list_bool_flip[0],list_bool_flip[1]))
+        if horizontal_bool == True:
+            loc[0] += dimensions[0]
+        if vertical_bool == True:
+            loc[1] += dimensions[1]
+        if reverse_horizontal_bool == True:
+            loc[0] -= dimensions[0]
+        if reverse_vertical_bool == True:
+            loc[1] -= dimensions[1]
+    return listi
+def return_spritesheet_without_bg(img,loc,dimensions,cantidad_frame,vertical_bool,horizontal_bool,list_bool_flip,scale,list_color,replace_color):
+    listi = []
+    for i in range(1,cantidad_frame+1):
+        listi.append(erase_color_list(pygame.transform.flip(pygame.transform.rotozoom(pygame.Surface.subsurface(img,(loc[0],loc[1]),(dimensions[0],dimensions[1])),0,scale),list_bool_flip[0],list_bool_flip[1]),list_color,replace_color))
+        if horizontal_bool == True:
+            loc[0] += dimensions[0]
+        if vertical_bool == True:
+            loc[1] += dimensions[1]
+    return listi
 
+def charge_img(name,max,extension,scale,angle):
+    lista_imgs = []
+    for i in range(1,max):
+        lista_imgs.append(pygame.transform.rotozoom(pygame.image.load(f'{name}{i}{extension}').convert(),angle,scale))
+    return lista_imgs
+def charge_img_to_vid(name,max,extension,scale,angle,rect,list_bool_flip):
+    lista_imgs = []
+    for i in range(1,max):
+        lista_imgs.append(pygame.transform.flip(pygame.transform.rotozoom(pygame.Surface.subsurface(pygame.image.load(f'{name}{i}{extension}').convert(),rect),angle,scale),list_bool_flip[0],list_bool_flip[1]))
+    return lista_imgs
+def charge_img_without_background(name,max,extension,scale,angle,rect,list_bool_flip,background_colors,color_replace):
+    lista_imgs = []
+    for i in range(1,max):
+        lista_imgs.append(erase_color_list(pygame.transform.flip(pygame.transform.rotozoom(pygame.Surface.subsurface(pygame.image.load(f'{name}{i}{extension}').convert(),rect),angle,scale),list_bool_flip[0],list_bool_flip[1]),background_colors,color_replace))
 
+    return lista_imgs
+
+def save_surf_repeated(amount,surf):
+    surfs = []
+    for i in range(1,amount+1):
+        surfs.append(surf)
+    return surfs
+"""videos"""
+vid_ghost = charge_img('videos/frames/bishoujo_ghostface/Video1-Frame',10,'.jpg',0.4 ,0)
+video_ghostface = {'video_frames':vid_ghost,'max_frames':encontrar_maximo_de_elementos(vid_ghost)-1,
+                   'sound':'videos/sonido/bishoujo_ghostface.ogg','vel':0.8,'indice':0,'pos':(0,0),
+                   'bool_pause':False,'restart':False
+                   }
+vid_ichigo_vs_kenpachi = charge_img('videos/frames/ichigo vs kenpachi/Video1-Frame',3000,'.jpg',0.5,0)
+video_bleach = {'video_frames':vid_ichigo_vs_kenpachi,'max_frames':encontrar_maximo_de_elementos(vid_ichigo_vs_kenpachi)-1,
+                   'sound':'videos/sonido/bishoujo_ghostface.ogg','vel':0.8,'indice':0,'pos':(0,0),
+                   'bool_pause':False
+                   }
+video_goku_sad = {'video_frames':charge_img('videos/frames/goku sad/Video1-Frame',1,'.jpg',5,0),'max_frames':90,
+                   'sound':'videos/sonido/bishoujo_ghostface.ogg','vel':0.8,'indice':0,'pos':(0,0),
+                   'bool_pause':False
+                   }
+video_saitama_meme = {'video_frames':charge_img('videos/frames/saitama achicado/Video1-Frame',1,'.jpg',0.5,0),'max_frames':130,
+                   'sound':'videos/sonido/bishoujo_ghostface.ogg','vel':1.5,'indice':0,'pos':(0,0),
+                   'bool_pause':False
+                   }
+video_dante_dr_fauss = {'video_frames':charge_img('videos/frames/dante dr_fauss/Video1-Frame',1,'.jpg',0.5,0),'max_frames':56,
+                   'sound':'videos/sonido/bishoujo_ghostface.ogg','vel':0.8,'indice':0,'pos':(0,0),
+                   'bool_pause':False
+                   }
+#3d false
+def return_3d_avatar(up_spritesheet,down_spritesheet,right_spritesheet,rect_sprites,pos_player,scale_of_surf,frames):
+    rects = [rect_sprites,[0,0,250,250],[0,0,250,250],[0,0,250,250]]
+    vids = [
+        return_spritesheet(pygame.image.load(up_spritesheet).convert_alpha(),rects[0],[rect_sprites[2],rect_sprites[3]],frames,False,True,(False,False),scale_of_surf),
+        return_spritesheet(pygame.image.load(down_spritesheet).convert_alpha(),rects[1],[rect_sprites[2],rect_sprites[3]],frames,False,True,(False,False),scale_of_surf),
+        return_spritesheet(pygame.image.load(right_spritesheet).convert_alpha(),rects[2],[rect_sprites[2],rect_sprites[3]],frames,False,True,(True,False),scale_of_surf),
+        return_spritesheet(pygame.image.load(right_spritesheet).convert_alpha(),rects[3],[rect_sprites[2],rect_sprites[3]],frames,False,True,(False,False),scale_of_surf),
+        ]
+    vids_dict = [
+        {'video_frames':vids[0],'max_frames':encontrar_maximo_de_elementos(vids[0])-1,'sound':'','vel':0.8,'indice':0,'pos':pos_player,'bool_pause':False},
+        {'video_frames':vids[1],'max_frames':encontrar_maximo_de_elementos(vids[1])-1,'sound':'','vel':0.8,'indice':0,'pos':pos_player,'bool_pause':False},
+        {'video_frames':vids[2],'max_frames':encontrar_maximo_de_elementos(vids[2])-1,'sound':'','vel':0.8,'indice':0,'pos':pos_player,'bool_pause':False},
+        {'video_frames':vids[3],'max_frames':encontrar_maximo_de_elementos(vids[3])-1,'sound':'','vel':0.8,'indice':0,'pos':pos_player,'bool_pause':False},
+    ]
+    return vids_dict
+
+#briggite
+briggite_scale = (250,250)
+scale_pre_render = 1.5
+pos_player = [200,350]
+pos_enem = [600,350]
+
+briggite_idle = return_3d_avatar('personaje pre render/briggite/idle/back.png','personaje pre render/briggite/idle/front.png','personaje pre render/briggite/idle/right.png',[0,0,250,250],pos_enem,scale_pre_render,91)
+briggite_move = return_3d_avatar('personaje pre render/briggite/move/back.png','personaje pre render/briggite/move/front.png','personaje pre render/briggite/move/right.png',[0,0,250,250],pos_enem,scale_pre_render,31)
+briggite_punch = return_3d_avatar('personaje pre render/briggite/punch/back.png','personaje pre render/briggite/punch/front.png','personaje pre render/briggite/punch/right.png',[0,0,250,250],pos_enem,scale_pre_render,90)
+briggite_emote = return_3d_avatar('personaje pre render/briggite/gesto/back.png','personaje pre render/briggite/gesto/front.png','personaje pre render/briggite/gesto/right.png',[0,0,250,250],pos_enem,scale_pre_render,83)
+briggite_idle.extend(briggite_move)
+briggite_idle.extend(briggite_punch)
+briggite_idle.extend(briggite_emote)
+#master
+master_scale = (250,250)
+
+master_idle = return_3d_avatar('personaje pre render/master chief/idle/back.png','personaje pre render/master chief/idle/front.png','personaje pre render/master chief/idle/right.png',[0,0,250,250],pos_player,scale_pre_render,75)
+master_move = return_3d_avatar('personaje pre render/master chief/walk/back.png','personaje pre render/master chief/walk/front.png','personaje pre render/master chief/walk/right.png',[0,0,250,250],pos_player,scale_pre_render,31)
+master_punch = return_3d_avatar('personaje pre render/master chief/punch/back.png','personaje pre render/master chief/punch/front.png','personaje pre render/master chief/punch/right.png',[0,0,250,250],pos_player,scale_pre_render,81)
+master_emote = return_3d_avatar('personaje pre render/master chief/gesto/back.png','personaje pre render/master chief/gesto/front.png','personaje pre render/master chief/gesto/right.png',[0,0,250,250],pos_player,scale_pre_render,85)
+master_idle.extend(master_move)
+master_idle.extend(master_punch)
+master_idle.extend(master_emote)
+#kratos
+kratos_idle = return_3d_avatar('personaje pre render/kratos/idle/back.png','personaje pre render/kratos/idle/front.png','personaje pre render/kratos/idle/right.png',[0,0,250,250],pos_player,scale_pre_render,67)
+kratos_move = return_3d_avatar('personaje pre render/kratos/walk/back.png','personaje pre render/kratos/walk/front.png','personaje pre render/kratos/walk/right.png',[0,0,250,250],pos_player,scale_pre_render,31)
+kratos_punch = return_3d_avatar('personaje pre render/kratos/punch/back.png','personaje pre render/kratos/punch/front.png','personaje pre render/kratos/punch/right.png',[0,0,250,250],pos_player,scale_pre_render,42)
+kratos_emote = return_3d_avatar('personaje pre render/kratos/gesto/back.png','personaje pre render/kratos/gesto/front.png','personaje pre render/kratos/gesto/right.png',[0,0,250,250],pos_player,scale_pre_render,85)
+kratos_idle.extend(kratos_move)
+kratos_idle.extend(kratos_punch)
+kratos_idle.extend(kratos_emote)
+#dante
+dante_idle = return_3d_avatar('personaje pre render/dante/idle/back.png','personaje pre render/dante/idle/front.png','personaje pre render/dante/idle/right.png',[0,0,250,250],pos_player,scale_pre_render,121)
+dante_move = return_3d_avatar('personaje pre render/dante/walk/back.png','personaje pre render/dante/walk/front.png','personaje pre render/dante/walk/right.png',[0,0,250,250],pos_player,scale_pre_render,42)
+dante_punch = return_3d_avatar('personaje pre render/dante/punch/back.png','personaje pre render/dante/punch/front.png','personaje pre render/dante/punch/right.png',[0,0,250,250],pos_player,scale_pre_render,56)
+dante_emote = return_3d_avatar('personaje pre render/dante/gesto/back.png','personaje pre render/dante/gesto/front.png','personaje pre render/dante/gesto/right.png',[0,0,250,250],pos_player,scale_pre_render,67)
+dante_idle.extend(dante_move)
+dante_idle.extend(dante_punch)
+dante_idle.extend(dante_emote)
+#character
+briggite_character = {'imgs':briggite_idle,'index':2,'index_sum':0,'index_sum_2':0,'index_sum_3':0}
+master_character = {'imgs':master_idle,'index':0,'index_sum':0,'index_sum_2':0,'index_sum_3':0}
+kratos_character = {'imgs':kratos_idle,'index':0,'index_sum':0,'index_sum_2':0,'index_sum_3':0}
+dante_character = {'imgs':dante_idle,'index':0,'index_sum':0,'index_sum_2':0,'index_sum_3':0}
+
+index_character = 2
+characters = [master_character,kratos_character,dante_character,briggite_character]
+index_character_enem = 0
+characters_enem = [briggite_character]
+map_3d_fake = {}
+def camera_follow(screen,map_dict,videos_dict,up_bool,down_bool,left_bool,right_bool,punch_bool,emote_bool,pos,vel):
+    #print(briggite_move)
+    #print(videos_dict['index_sum'],'ttttttttttttttttt')
+    #punch
+    if punch_bool == True and emote_bool == False:
+        videos_dict['index_sum'] = 8
+    if punch_bool == False:
+        videos_dict['index_sum'] = 0
+    #emote
+    if emote_bool == True and punch_bool == False:
+        videos_dict['index_sum_3'] = 12
+    if emote_bool == False:
+        videos_dict['index_sum_3'] = 0
+    #move
+    if up_bool == True:
+        videos_dict['index'] = 0
+    if down_bool == True:
+        videos_dict['index'] = 1
+    if left_bool == True:
+        pos[0] -= vel
+        videos_dict['index'] = 2
+    if right_bool == True:
+        pos[0] += vel
+        videos_dict['index'] = 3 
+    img = videos_dict['imgs'][videos_dict['index'] + videos_dict['index_sum'] + videos_dict['index_sum_2'] + videos_dict['index_sum_3']]
+    img['pos'] = pos
+    if up_bool == False and down_bool == False and left_bool == False and right_bool == False:
+        videos_dict['index_sum_2'] = 0
+    if up_bool == True or down_bool == True or left_bool == True or right_bool == True:
+        videos_dict['index_sum_2'] = 4
+        videos_dict['index_sum'] = 0
+        videos_dict['index_sum_3'] = 0
+        #img['indice'] = 0
+        #if img['indice'] >= 20:
+            #img['indice'] -= img['vel']
+    blit_video(screen,img)
+def redirect_enem(pos,pos_enem,distance):
+    avis = avistamiento('p',pos,pos_enem,distance)
+    if avis == True:
+        if pos[0] < pos_enem[0]:
+            return {'left':False,'right':True}
+        if pos[0] > pos_enem[0]:
+            return {'left':True,'right':False}
+        else:
+            return {'left':False,'right':False}
+    if avis == False:
+        return {'left':False,'right':False}
+def pre_render_npc(videos_dict,screen,pos,pos_enem):
+    
+    #ver
+    
+    
+
+    #rect
+    rect_player = [pos[0],pos[1],250,250]
+    rect_enem = [pos_enem[0],pos_enem[1],250,250]
+    #seguir
+    avis = redirect_enem(pos,pos_enem,400)
+    
+
+        
+    
+    #collide
+
+    camera_follow(screen,map_3d_fake,videos_dict,False,False,avis['left'],avis['right'],Colliderect(rect_player,rect_enem),False,pos,1)
 
 
 class player:
-    lista_img = None
     """fps"""
     fps = 60
-    """fondo"""
-    color_background = (0,128,128)
-    """formato de imagen"""
-    formato = '.png'
-    """directorio"""
-    directorio = ''
-    """solo si es una superficie"""
-    scale_surf = 2
-    color_back_surf = (0,128,128)
-    """atributos"""
-    vida_value = 400
-    damage = 5
-    recuperacion_vida = 5
-    alejamiento = 10
-    moverse = {'up':False,'down':False,'left':False,'right':False,'punch':False,'kekkai':False,'shunpo':False,'ki_blast':False}
-    posicion = [100,360]
-    velocidad = 5
-    vel_trasicion_img = 0.15
-    indice = 0
+    moverse = {'up':False,'down':False,'left':False,'right':False,'punch':False,'kekkai':False,'shunpo':False,'ki_blast':False,'grab':False,'charge':False,'esp':False,'esp_2':False}
+    posicion = [100,200]
     bool_game = True
-    num_change = 0
-    life_color = (200,0,20)
-    life_position = (100,50)
     """background"""
     color_fondo = (255,0,0)
     """punch speed multiplier"""
     punch_speed_multiplier = 3
-    """index string"""
-    index_string = ['up','down','left','right']
     """max frames y y max index"""
     max_frames = 4
-    #max_index =
     """superficies y rects"""
     superficie = [pygame.Surface((40, 60))]
-    superficies = superficie * 12
     s_rect = superficie[0].get_rect(center=(posicion[0], posicion[1]))
-    """enemigo"""
-    enem_class = None
-    indice_enem = 0
     """minimap"""
     minimap = None
-    """world map"""
-    world_map = None
     """menu"""
     menu = None
-    """charge screen"""
-    charge_screen_class = None
-    """ki class"""
-    ki_class = None
-    """npc class"""
-    npc_class = None
-    """video class"""
-    video_class = None
-    """adicional"""
-    #clash fist
-    clash_fist_bool = True
-    #ciclo dia noche
-    cont_tiempo = 0
-    #punch
-    cont_punch = 0
-    """add to list"""
-    punch = None
-    kekkai = None
-    """guard"""
-    Guard_surface = None
-    Guard_bubble_alto = 40
-    Guard_bubble_ancho = 40
-    """type surface"""
-    type_surface = 'surface'
-    """transform"""
-    list_img_2 = None
-    list_img_3 = None
-    """Game mode"""
-    game_mode = 'rpg'
-    """convert to interface"""
     """function extras"""
     function_normal = None
     function_in_menu = None
@@ -114,90 +296,21 @@ class player:
     def __init__(self, screen, width,height):
         """asignar"""
         self.screen = screen
-        #self.lista_img = lista_img
-        self.width = width
-        self.height = height
-        """verificar lista"""
-        self.index = 3
-        self.punch_add = 0
-        self.kekkai_add = 0
         """utilizar"""
-
-
-        #def on(self):
         while self.bool_game == True:
 
             pygame.time.Clock().tick(fps)
             if self.function_normal is not None:
                 self.function_normal()
-            self.numero_redondeado = round(self.num_change)
-
-            if self.type_surface == 'surface':
-                if self.lista_img is not None:
-                    self.variables = [self.lista_img[0],self.lista_img[1],self.lista_img[2],self.lista_img[3],
-                                      self.punch[0],self.punch[1],self.punch[2],self.punch[3],
-                                      self.kekkai[0],self.kekkai[1],self.kekkai[2],self.kekkai[3]]
-                    self.img_actual = self.variables[self.indice][self.numero_redondeado]
-                    """outline"""
-                    self.perfect_outline(self.screen, self.img_actual, self.s_rect, 5, 100)
-                    """mostrar"""
-                    self.screen.blit(self.img_actual, self.s_rect)
-
-            self.reiniciar()
-
-            if self.moverse['up'] == True:
-                self.mover_arriba()
-            elif self.moverse['down'] == True:
-                self.mover_abajo()
-            elif self.moverse['left'] == True:
-                self.mover_izquierda()
-            elif self.moverse['right'] == True:
-                self.mover_derecha()
-            elif self.moverse['punch'] == True:
-                self.Punch()
-            elif self.moverse['shunpo'] == True:
-                self.Shunpo(self.moverse['shunpo'],100)
-            elif self.moverse['kekkai'] == True:
-                self.Kekkai()
-                if self.Guard_surface is not None:
-                    self.Perfect_guard(self.Guard_surface,120)
-            else:
-                self.num_change = 0
-
             """mostrar"""
-
-            self.life_bar(self.vida_value,self.life_color,self.life_position)
-            if self.enem_class is not None:
-                self.enem_class(self.screen,self.s_rect,self.vida_value)
-                self.follow()
-                self.damage_func(self.s_rect,self.enem_class.e_rect,self.velocidad)
-
-                if self.clash_fist_bool == True:
-                    self.clash_fists(self.moverse['punch'],self.recuperacion_vida,self.alejamiento)
-                self.life_bar(self.enem_class.vida, self.enem_class.life_color, self.enem_class.life_position)
-            if self.minimap is not None:
-                self.create_minimap()
-            self.ciclo_dia_noche(1280,1080,0.10)
-
-
-
             if self.menu is not None:
                 self.menu(self.screen)
                 if self.function_in_menu is not None:
                     self.function_in_menu()
-                if self.menu.button_clone_1 is not None:
-                    self.add_button()
-                self.check_button(self.menu.boton_pos,self.menu.boton_scale)
-
-            """redirect"""
-            self.redirect(5,1280,720)
-            """usar funciones"""
-            self.damage_a_enemy()
-            self.Defend_player(self.moverse['kekkai'])
-
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    pygame.quit()
+                    self.bool_game = False
+                    #pygame.quit()
                 elif event.type == pygame.KEYDOWN:
                     if self.function_keyboard is not None:
                         self.function_keyboard(event)
@@ -221,6 +334,13 @@ class player:
                         self.moverse['right'] = True
                     if event.key == pygame.K_a:  # izquierda
                         self.moverse['left'] = True
+
+                    if event.key == pygame.K_g:  #grab
+                        self.moverse['grab'] = True
+                    if event.key == pygame.K_r:  #esp
+                        self.moverse['esp'] = True
+                    if event.key == pygame.K_t:  #esp_2
+                        self.moverse['esp_2'] = True
 
                 elif event.type == pygame.KEYUP:
                     if event.key == pygame.K_RIGHT:
@@ -247,8 +367,18 @@ class player:
                         self.moverse['right'] = False
                     if event.key == pygame.K_a:  # izquierda
                         self.moverse['left'] = False
-
-
+                    if event.key == pygame.K_g:  #grab
+                        self.moverse['grab'] = False
+                    if event.key == pygame.K_r:  #esp
+                        self.moverse['esp'] = False
+                    if event.key == pygame.K_t:  #esp_2
+                        self.moverse['esp_2'] = False
+            #charge
+            if pygame.mouse.get_pressed()[1] == True:
+                self.moverse['charge'] = True
+            if pygame.mouse.get_pressed()[1] == False:
+                self.moverse['charge'] = False
+            #punch
             if pygame.mouse.get_pressed()[0] == True:
                 self.moverse['punch'] = True
             else:
@@ -261,601 +391,378 @@ class player:
             pygame.display.flip()
 
 
-    def mover_arriba(self):
-        self.indice = 0
-        self.num_change += self.vel_trasicion_img
-        self.s_rect.y -= self.velocidad
-
-    def mover_abajo(self):
-        self.indice = 1
-        self.num_change += self.vel_trasicion_img
-        self.s_rect.y += self.velocidad
-
-    def mover_izquierda(self):
-        self.indice = 2
-        self.num_change += self.vel_trasicion_img
-        self.s_rect.x -= self.velocidad
-
-    def mover_derecha(self):
-        self.indice = 3
-        self.num_change += self.vel_trasicion_img
-        self.s_rect.x += self.velocidad
-    def Punch(self):
-        # punch
-
-        self.num_change += self.vel_trasicion_img * self.punch_speed_multiplier
+    
 
 
-
-        """up"""
-        if self.indice == 0 and self.moverse['punch'] == True:
-            self.indice = 4
-
-        """down"""
-        if self.indice == 1 and self.moverse['punch'] == True:
-            self.indice = 5
-
-        """left"""
-        if self.indice == 2 and self.moverse['punch'] == True:
-            self.indice = 6
-
-        """right"""
-        if self.indice == 3 and self.moverse['punch'] == True:
-            self.indice = 7
-
-    def Kekkai(self):
-
-        """guardia"""
-        if self.indice == 0 and self.moverse['kekkai'] == True:
-            self.indice = 8
-        if self.indice == 1 and self.moverse['kekkai'] == True:
-            self.indice = 9
-        if self.indice == 2 and self.moverse['kekkai'] == True:
-            self.indice = 10
-        if self.indice == 3 and self.moverse['kekkai'] == True:
-            self.indice = 11
-
-
-
-    def Shunpo(self, bool_shunpo, distancia):  # tecla espacio
-        if bool_shunpo == True and self.indice == 0:
-            self.s_rect.y -= distancia
-        if bool_shunpo == True and self.indice == 1:
-            self.s_rect.y += distancia
-        if bool_shunpo == True and self.indice == 2:
-            self.s_rect.x -= distancia
-        if bool_shunpo == True and self.indice == 3:
-            self.s_rect.x += distancia
-    def clash_fists(self,bool_punch,cantidad_recuperacion,alejamiento):
-        if self.s_rect.x > self.enem_class.e_rect.x and bool_punch == True and self.enem_class.golpeando == True:
-            self.vida_value += cantidad_recuperacion
-            self.screen.fill((255,255,255))
-            self.enem_class.e_rect.x -= alejamiento
-        elif self.s_rect.x < self.enem_class.e_rect.x and bool_punch == True and self.enem_class.golpeando == True:
-            self.vida_value += cantidad_recuperacion
-            self.screen.fill((255,255,255))
-            self.enem_class.e_rect.x += alejamiento
-        if self.s_rect.y > self.enem_class.e_rect.y and bool_punch == True and self.enem_class.golpeando == True:
-            self.vida_value += cantidad_recuperacion
-            self.screen.fill((255,255,255))
-            self.enem_class.e_rect.y -= alejamiento
-        elif self.s_rect.y < self.enem_class.e_rect.y and bool_punch == True and self.enem_class.golpeando == True:
-            self.vida_value += cantidad_recuperacion
-            self.screen.fill((255,255,255))
-            self.enem_class.e_rect.y += alejamiento
-    def Perfect_guard(self):
-        if self.moverse['kekkai'] == True:
-            if self.num_change == self.enem_class.num_change_enem:
-                print('perfect')
-
-
-    def reiniciar(self):
-        if self.num_change > self.max_frames:
-            self.num_change = 0
-        if self.indice > 3:
-            if self.num_change > 3:
-                self.num_change = 0
-        if self.indice > 7:
-            if self.num_change > 1:
-                self.num_change = 1
-
-        """vida"""
-        if self.vida_value < 400:
-            self.vida_value += 0.2
-        """reinicio punch"""
-        if self.moverse['punch'] == False and self.indice == 4:
-            self.indice = 0
-        if self.moverse['punch'] == False and self.indice == 5:
-            self.indice = 1
-        if self.moverse['punch'] == False and self.indice == 6:
-            self.indice = 2
-        if self.moverse['punch'] == False and self.indice == 7:
-            self.indice = 3
-        """reinicio kekkai"""
-        if self.indice == 8 and self.moverse['kekkai'] == False:
-            self.indice = 0
-        if self.indice == 9 and self.moverse['kekkai'] == False:
-            self.indice = 1
-        if self.indice == 10 and self.moverse['kekkai'] == False:
-            self.indice = 2
-        if self.indice == 11 and self.moverse['kekkai'] == False:
-            self.indice = 3
-    def life_bar(self,vida_value,life_color,life_position):
-        life = pygame.Surface((vida_value,vida_value//15))
-        life.fill(life_color)
-        life_back = pygame.Surface((vida_value + 20,vida_value//10))
-        life_back.fill((0,0,0))
-        self.screen.blit(life_back,life_position)
-        self.screen.blit(life,(life_position[0] + 10,life_position[1] + 10))
-    def damage_a_enemy(self):
-        if self.moverse['punch'] == True:
-            if self.enem_class is not None:
-                if self.s_rect.colliderect(self.enem_class.e_rect):
-                     self.enem_class.vida -= self.damage
-    def Defend_player(self,bool_defend):
-        if self.enem_class is not None:
-            if bool_defend == True:
-                self.enem_class.damage = 0
-            else:
-                self.enem_class.damage = 5
-    def create_minimap(self):
-        self.minimap.minimap.fill(self.minimap.color_background)
-        self.minimap.point_player.fill(self.minimap.color_player)
-        if self.enem_class is not None:
-            self.minimap.point_enemy.fill(self.minimap.color_enem)
-            self.minimap.minimap.blit(self.minimap.point_enemy,(self.enem_class.e_rect.x // self.minimap.escala,self.enem_class.e_rect.y // self.minimap.escala))
-        self.minimap.minimap.blit(self.minimap.point_player,(self.s_rect.x // self.minimap.escala,self.s_rect.y // self.minimap.escala))
-        self.screen.blit(self.minimap.minimap,(40,550))
-    def redirect(self,velocidad,width,height):
-        if self.s_rect.x > width:
-            self.s_rect.x -= velocidad
-        elif self.s_rect.x < 0:
-            self.s_rect.x += velocidad
-        if self.s_rect.y > height:
-            self.s_rect.y -= velocidad
-        elif self.s_rect.y < 0:
-            self.s_rect.y += velocidad
-        """win or lose"""
-        if self.vida_value < 5:
-            self.vida_value = 400
-            if self.enem_class is not None:
-                self.enem_class.vida = 400
-            self.s_rect.x = 300
-            self.s_rect.y = 500
-        if self.enem_class is not None:
-            if self.enem_class.vida < 40:
-                self.enem_class.vida = 400
-                self.vida_value = 400
-                self.enem_class.e_rect.x = 600
-                self.enem_class.e_rect.y = 500
-    def ciclo_dia_noche(self,width,height,vel):
-        self.cont_tiempo += vel
-        self.oscuridad = pygame.Surface((width,height),pygame.SRCALPHA)
-        self.oscuridad.fill((0, 0, 0, self.cont_tiempo))
-        self.screen.blit(self.oscuridad, (0, 0))
-        if self.cont_tiempo > 100:
-            self.cont_tiempo = 0
-
-
-
-
-    def is_surface(self,obj):
-        return isinstance(obj, pygame.surface.Surface)
-
-    def is_variable(obj):
-        """Retorna True si obj es una variable y False si no lo es."""
-        return isinstance(obj, (str, int, float, complex, bool, list, tuple, set, dict))
-    """verificar si partes de list_img faltan y desaltivar funciones"""
-
-    #def enemy_damage(self):
-    """con la clase del enemigo"""
-    def damage_func(self, rect_player, rect_enem, vel):
-        bools = [True]
-        # print(bools[0])
-
-        if rect_player.colliderect(rect_enem):
-            self.enem_class.golpeando = True
-        else:
-            self.enem_class.golpeando = False
-        if rect_player.x < rect_enem.x:
-            if rect_player.colliderect(rect_enem):
-                bools[0] = True
-                # print(bools[0])
-                self.enem_class.indice_enem = 6
-                self.vida_value -= self.enem_class.damage
-                rect_player.x -= vel
-            else:
-                self.enem_class.indice_enem = 2
-        if rect_player.x > rect_enem.x:
-            if rect_player.colliderect(rect_enem):
-                # print(damage)
-                self.enem_class.indice_enem = 7
-                self.vida_value -= self.enem_class.damage
-                rect_player.x += vel
-            else:
-                self.enem_class.indice_enem = 3
-        if rect_player.y < rect_enem.y:
-            if rect_player.colliderect(rect_enem):
-                # print(damage)
-                """indice punch"""
-                self.enem_class.indice_enem = 4
-                self.vida_value -= self.enem_class.damage
-                rect_player.y -= vel
-            else:
-                self.enem_class.indice_enem = 0
-        if rect_player.y > rect_enem.y:
-            if rect_player.colliderect(rect_enem):
-                # print(damage)
-                self.enem_class.indice_enem = 5
-                self.vida_value -= self.enem_class.damage
-                rect_player.y += vel
-            else:
-                self.enem_class.indice_enem = 1
-    def reinicio_num_change_e(self):
-        if self.enem_class.num_change_enem >= 3:
-            self.enem_class.num_change_enem = 0
-    def follow(self):
-        self.reinicio_num_change_e()
-        self.enem_class.vel_transition = round(self.enem_class.vel_float)
-        if self.avistamiento(self.enem_class.e_rect, self.s_rect, self.enem_class.distancia):
-            self.enem_class.num_change_enem += self.enem_class.vel_transition
-            if self.enem_class.e_rect.x > self.s_rect.x:
-                self.enem_class.indice_enem = 2
-                self.enem_class.e_rect.x -= self.enem_class.vel
-                #mov_enem_bool_list[2] = True
-            elif self.enem_class.e_rect.x < self.s_rect.x:
-                self.enem_class.indice_enem = 3
-                self.enem_class.e_rect.x += self.enem_class.vel
-                #mov_enem_bool_list[3] = True
-            if self.enem_class.e_rect.y > self.s_rect.y:
-                self.enem_class.indice_enem = 0
-                self.enem_class.e_rect.y -= self.enem_class.vel
-                #mov_enem_bool_list[0] = True
-            elif self.enem_class.e_rect.y < self.s_rect.y:
-                self.enem_class.e_rect.y += self.enem_class.vel
-                self.enem_class.indice_enem = 1
-
-
-
-    def avistamiento(self,a, b, distancia):
-        if (math.sqrt(((b.x - a.x) ** 2) + ((b.y - a.y) ** 2))) < distancia:
-            return True
-        else:
-            return False
-    """menu"""
-    def render_text(self,texto,posicion,escala,color):
-        fuente_uni = pygame.font.Font(None, escala)
-        mensaje_uni = fuente_uni.render(texto, True, color)
-        screen.blit(mensaje_uni, posicion)
-    def hover(self,button_pos,button_scale):
-        mouse_pos = pygame.mouse.get_pos()
-        if mouse_pos[0] > button_pos[0] and mouse_pos[0] < button_pos[0] + button_scale and mouse_pos[1] > button_pos[1] and mouse_pos[1] < button_pos[1] + button_scale:
-            return True
-        else:
-            return False
-    def check_button(self,button_pos,button_wid):
-        if self.hover(button_pos,button_wid):
-            self.menu.color_boton = (255,255,255)
-            if pygame.mouse.get_pressed()[0] == True:
-                self.menu.color_boton = (0, 255, 0)
-                self.menu.active = False
-        else:
-            self.menu.color_boton = (255, 0, 0)
-        if pygame.mouse.get_pressed()[1] == True:
-            self.menu.active = True
-
-    def add_button(self):
-        self.color_copy = self.menu.button_clone_1['color']
-        if self.menu.active == True:
-            if 'icon' in self.menu.button_clone_1:
-                self.icon = pygame.transform.scale(pygame.image.load(self.menu.button_clone_1['icon']),(self.menu.button_clone_1['scale'],self.menu.button_clone_1['scale']))
-            self.boton = pygame.Surface((self.menu.button_clone_1['scale'], self.menu.button_clone_1['scale']))
-            self.boton.fill(self.menu.button_clone_1['color'])
-            self.screen.blit(self.boton, self.menu.button_clone_1['pos'])
-            if 'icon' in self.menu.button_clone_1:
-                self.screen.blit(self.icon, self.menu.button_clone_1['pos'])
-            if 'text' in self.menu.button_clone_1:
-                if 'text_scale' not in self.menu.button_clone_1:
-                    self.render_text(self.menu.button_clone_1['text'],self.menu.button_clone_1['pos'],32,(255,255,255))
-                elif 'text_scale'  in self.menu.button_clone_1:
-                    self.render_text(self.menu.button_clone_1['text'],self.menu.button_clone_1['pos'],self.menu.button_clone_1['text_scale'],(255,255,255))
-            if self.hover(self.menu.button_clone_1['pos'],self.menu.button_clone_1['scale']):
-                self.menu.button_clone_1['color'] = self.menu.button_clone_1['hover_color']
-                if self.moverse['punch'] == True:
-                    self.menu.button_clone_1['funtion']()
-
-            else:
-                self.menu.button_clone_1['color'] = (255,0,0)
-
-
-
-    """aura"""
-
-    def perfect_outline(self,display,img, loc,grosor,transparencia):
-        mask = pygame.mask.from_surface(img)
-        mask_surf = mask.to_surface()
-        mask_surf.set_alpha(transparencia)
-        #mask_surf.fill((255, 0, 0))
-        mask_surf.set_colorkey((0, 0, 0))
-
-        display.blit(mask_surf, (loc[0] - grosor, loc[1]))
-        display.blit(mask_surf, (loc[0] + grosor, loc[1]))
-        display.blit(mask_surf, (loc[0], loc[1] - grosor))
-        display.blit(mask_surf, (loc[0], loc[1] + grosor))
-
-
-class Enemy:
-    vida = 400
-    life_color = (255,255,255)
-    life_position = (800,50)
-    posicion = (600,600)
-
-    distancia = 200
-    """extension"""
-    extension = '.png'
-    """control frame"""
-    indice_enem = 0
-    num_change_enem = 1
-    vel_float = 0.15
-    vel_transition = 0.15
-    vel = 3
-
-    """surfs"""
-    superficie = [pygame.Surface((40, 70))]
-    superficies = superficie * 12
-    e_rect = superficie[0].get_rect(center=posicion)
-    color_back = (0,128,128)
-    damage = 5
-    """player"""
-    golpeando = False
-    list_img = None
-    punch = None
-
-    def __init__(self,screen,s_rect,life_player):
-        self.screen = screen
-        self.life_player = life_player
-        self.s_rect = s_rect
-        if self.list_img is not None and self.punch is not None:
-            #self.variables = [globals()[f"{self.list_img[0]}_{self.num_change_enem}"], globals()[f"{self.list_img[1]}_{self.num_change_enem}"],globals()[f"{self.list_img[2]}_{self.num_change_enem}"], globals()[f"{self.list_img[3]}_{self.num_change_enem}"],globals()[f"{self.punch[0]}{self.num_change_enem}"], globals()[f"{self.punch[1]}{self.num_change_enem}"],globals()[f"{self.punch[2]}{self.num_change_enem}"], globals()[f"{self.punch[3]}{self.num_change_enem}"]]
-            self.variables = [self.list_img[0],self.list_img[1],self.list_img[2],self.list_img[3],
-                              self.punch[0],self.punch[1],self.punch[2],self.punch[3]]
-            self.img_actual =  self.variables[self.indice_enem][round(self.num_change_enem)]
-            self.screen.blit(self.img_actual,self.e_rect)
-
-class Minimap:
-    escala = 5
-    color_background = (255,185,15)
-    color_player = (255,0,0)
-    color_enem = (0,0,255)
-    minimap = pygame.Surface((screen.get_width() // 5, screen.get_height() // 5))
-    point_player = pygame.Surface((8, 8))
-    point_enemy = pygame.Surface((8, 8))
 class Menu:
     image_background = None
-    color_background = (0,0,0)
-    palabra = 'dbz legacy of battle'
-    scala_text = 32
-    color_text = (255,255,255)
-    bool_palabra = True
-    X_text = 0
-    Y_text = 0
-    """boton"""
-    color_boton = (255,0,0)
-    boton_scale = 50
-    boton_pos = (0,0)
-    boton_text = 'New'
-    #boton_text_pos = (0,0)
-    boton_text_pos = (0,0)
-    boton_text_scale = 32
-    boton_text_color = (255,255,255)
+    palabra = {'txt':'dbz legacy of battle','pos':(0,680),'scale':42,'color':(255,255,255)}
     """activar o desactivar menu"""
     active = True
     """especial"""
-    version_txt = '1.0.0'
-    version_pos = (0,500)
-    version_scale = 32
-    version_color = (255,0,0)
-    """button clone"""
-    button_clone_1 = None
-    button_clone_2 = None
-    button_clone_3 = None
-    button_clone_4 = None
-    button_clone_5 = None
-
+    version = {'txt':'1.0.0','pos':(0,500),'scale':32,'color':(255,0,0)}
     def __init__(self,screen):
         self.screen = screen
         if self.active == True:
-            self.screen.fill(self.color_background)
             if self.image_background is not None:
                 self.screen.blit(self.image_background,(0,0))
-            self.poner_palabra(self.palabra,(self.X_text,self.Y_text),self.scala_text,self.color_text)
-            self.poner_palabra(self.version_txt,self.version_pos,self.version_scale,self.version_color)
-            self.Boton()
-    def poner_palabra(self,texto,posicion,escala,color):
-        if self.bool_palabra == True:
-            fuente_uni = pygame.font.Font(None, escala)
-            mensaje_uni = fuente_uni.render(texto, True, color)
-            screen.blit(mensaje_uni, posicion)
-    def Boton(self):
-        self.boton = pygame.Surface((self.boton_scale,self.boton_scale))
-        self.boton.fill(self.color_boton)
-        self.screen.blit(self.boton,self.boton_pos)
-        self.poner_palabra(self.boton_text,self.boton_text_pos,self.boton_text_scale,self.boton_text_color)
-
-
-
-
-
-
-
-mp = Minimap
-mp.color_background = (255,255,255)
-mp.color_player = (0,0,0)
-mp.color_enem = (0,255,0)
-enem = Enemy
-enem.vida = 400
-enem.list_img = ['personajes/vegeta/up/up_','personajes/vegeta/down/down_','personajes/vegeta/left/left_','personajes/vegeta/right/right_']
-enem.punch = ['personajes/vegeta/punch_right/up/up_','personajes/vegeta/punch_right/down/down_','personajes/vegeta/punch_right/left/left_','personajes/vegeta/punch_right/right/right_']
-"""menu"""
-def xd():
-    print('tu madre')
-
+            string_blit(self.version['txt'],self.version['pos'],self.version['scale'],self.version['color'],screen)
+            string_blit(self.palabra['txt'],self.palabra['pos'],self.palabra['scale'],self.palabra['color'],screen)
+    
 """menu"""
 img_back = pygame.image.load('tema de menu principal/goku_kaioken vs vegeta.jpg')
-
-
 menu = Menu
 menu.image_background = img_back
-menu.boton_pos = (500,300)
-menu.boton_text_pos = (500,300)
-menu.boton_scale = 200
-menu.version_pos = (0,700)
 
-
-"""npc"""
-#npc = NPC
-diccionario = {'indice':0}
 
 
 
 """character main"""
-def charge_img(name,max,extension,scale,angle):
-    lista_imgs = []
-    for i in range(1,max):
-        lista_imgs.append(pygame.transform.rotozoom(pygame.image.load(f'{name}{i}{extension}').convert(),angle,scale))
-    return lista_imgs
-def save_surf_repeated(amount,surf):
-    surfs = []
-    for i in range(1,amount+1):
-        surfs.append(surf)
-    return surfs
-scala_random = 2
-
+scala_sprites = 1.5
 #spritesheet
 #goku
 goku_spritesheet = pygame.image.load('movimiento/goku_spritesheet.png').convert_alpha()
 goku_ssg_spritesheet = pygame.image.load('movimiento/goku_spritesheet_goku_ssg.png').convert_alpha()
 goku_ultrainstinc_spritesheet = pygame.image.load('movimiento/goku_spritesheet_goku_ultra_instinc.png').convert_alpha()
+goku_spritesheet_db_log_1 = pygame.image.load('personajes/goku/39936.png').convert_alpha()
 #broly
 Broly_spritesheet = pygame.image.load('movimiento/goku_spritesheet.png').convert_alpha()
 #vegeta
 vegeta_spritesheet = pygame.image.load('personajes/vegeta/75737.png').convert_alpha()
+vegeta_ssg_spritesheet = pygame.image.load('personajes/vegeta/vegeta_ssg.png').convert_alpha()
+vegeta_MI_spritesheet = pygame.image.load('personajes/vegeta/vegeta_MI.png').convert_alpha()
 #trunks
 trunks_spritesheet = pygame.image.load('personajes/trunks/14504 (1).png').convert_alpha()
+trunks_kid_spritesheet = pygame.image.load('personajes/trunks/14503.png').convert_alpha()
 #picoro
+
 piccolo_spritesheet = pygame.image.load('personajes/piccoro/14502.png').convert_alpha()
+piccolo_orange_spritesheet = pygame.image.load('personajes/piccoro/picolo_orange.png').convert_alpha()
+piccolo_red_spritesheet = pygame.image.load('personajes\piccoro\picolo_red.png').convert_alpha()
+
 #dante
 dante_spritesheet = pygame.image.load('personajes/dante sparda/dante.png').convert_alpha()
 #saitama
 saitama_spritesheet = pygame.image.load('personajes/saitama/saitama.png').convert_alpha()
+#gogeto
+gogeto_sprite = pygame.image.load('personajes/gogeto/58808.png').convert_alpha()
+#vegito
+vegito_sprite = pygame.image.load('personajes/vegito/49926.png').convert_alpha()
+#satan
+spritesheet_mr_satan = pygame.image.load('personajes/mr satan/75736 (1).png').convert_alpha()
+#broly
+spritesheet_broly = pygame.image.load('personajes/broly/156873.png').convert_alpha()
+#bulma
+spritesheet_bulma = pygame.image.load('personajes/To npc/bulma.png')
+#milk
+spritesheet_milk = pygame.image.load('personajes/To npc/milk.png')
 
-list_sprite = [goku_spritesheet,goku_ssg_spritesheet,goku_ultrainstinc_spritesheet,vegeta_spritesheet,
-               trunks_spritesheet,piccolo_spritesheet,dante_spritesheet,saitama_spritesheet]
+"""scales"""
+#goku
+goku_log1_scale = (20,33)
+goku_scale = (17,33)
+goku_scale_punch = (22,33)
+#vegeta
+vegeta_scale = [(17,33),(22,33),(21,33)]
+#gogeto
+gogeto_scale = (17,32)
+#vegito
+vegito_scale = (19,32)
+#piccolo
+piccolo_scale = [(16,32),(30,33)]
+#satan
+satan_scale = (17,32)
+satan_scale_punch = (23,32)
+#broly
+broly_scale = (60,65)
+"""the sprites"""
+#goku
+goku_sprite_list = [return_spritesheet(goku_spritesheet,[1,66],goku_scale,4,False,True,(False,False),scala_sprites),
+                    return_spritesheet(goku_spritesheet,[18,0],goku_scale,4,False,True,(False,False),scala_sprites),
+                    return_spritesheet(goku_spritesheet,[18,33],goku_scale,4,False,True,(True,False),scala_sprites),
+                    return_spritesheet(goku_spritesheet,[18,33],goku_scale,4,False,True,(False,False),scala_sprites),
+                    
+                    return_spritesheet(goku_ssg_spritesheet,[276,66],goku_scale_punch,4,False,True,(False,False),scala_sprites),
+                    return_spritesheet(goku_ssg_spritesheet,[292,0],goku_scale_punch,4,False,True,(False,False),scala_sprites),
+                    return_spritesheet(goku_ssg_spritesheet,[387,34],(24,33),4,False,True,(True,False),scala_sprites),
+                    return_spritesheet(goku_ssg_spritesheet,[387,34],(24,33),4,False,True,(False,False),scala_sprites)
+                    ]
+goku_ssj_sprite_list = [return_spritesheet(goku_spritesheet,[1,199],goku_scale,4,False,True,(False,False),scala_sprites),
+                    return_spritesheet(goku_spritesheet,[18,133],goku_scale,4,False,True,(False,False),scala_sprites),
+                    return_spritesheet(goku_spritesheet,[18,166],goku_scale,4,False,True,(True,False),scala_sprites),
+                    return_spritesheet(goku_spritesheet,[18,166],goku_scale,4,False,True,(False,False),scala_sprites),
+                    
+                    return_spritesheet(goku_ssg_spritesheet,[276,199],goku_scale_punch,4,False,True,(False,False),scala_sprites),
+                    return_spritesheet(goku_ssg_spritesheet,[292,133],goku_scale_punch,4,False,True,(False,False),scala_sprites),
+                    return_spritesheet(goku_ssg_spritesheet,[387,166],(24,33),4,False,True,(True,False),scala_sprites),
+                    return_spritesheet(goku_ssg_spritesheet,[387,166],(24,33),4,False,True,(False,False),scala_sprites)
+                    ]
+goku_UI_sprite_list = [return_spritesheet(goku_ultrainstinc_spritesheet,[1,66],goku_scale,4,False,True,(False,False),scala_sprites),
+                    return_spritesheet(goku_ultrainstinc_spritesheet,[18,0],goku_scale,4,False,True,(False,False),scala_sprites),
+                    return_spritesheet(goku_ultrainstinc_spritesheet,[18,33],goku_scale,4,False,True,(True,False),scala_sprites),
+                    return_spritesheet(goku_ultrainstinc_spritesheet,[18,33],goku_scale,4,False,True,(False,False),scala_sprites),
+                    
+                    return_spritesheet(goku_ultrainstinc_spritesheet,[276,199],goku_scale_punch,4,False,True,(False,False),scala_sprites),
+                    return_spritesheet(goku_ultrainstinc_spritesheet,[292,133],goku_scale_punch,4,False,True,(False,False),scala_sprites),
+                    return_spritesheet(goku_ultrainstinc_spritesheet,[387,166],(24,33),4,False,True,(True,False),scala_sprites),
+                    return_spritesheet(goku_ultrainstinc_spritesheet,[387,166],(24,33),4,False,True,(False,False),scala_sprites)
+                    ]
+
+goku_log1_sprite_list = [return_spritesheet(goku_spritesheet_db_log_1,[220,86],goku_scale,4,False,True,(False,False),scala_sprites),
+                    return_spritesheet(goku_spritesheet_db_log_1,[18,86],goku_scale,4,False,True,(False,False),scala_sprites),
+                    return_spritesheet(goku_spritesheet_db_log_1,[461,86],goku_scale,4,False,True,(False,False),scala_sprites),
+                    return_spritesheet(goku_spritesheet_db_log_1,[461,86],goku_scale,4,False,True,(True,False),scala_sprites),
+                    
+                    return_spritesheet(goku_ssg_spritesheet,[276,66],goku_scale_punch,4,False,True,(False,False),scala_sprites),
+                    return_spritesheet(goku_ssg_spritesheet,[292,0],goku_scale_punch,4,False,True,(False,False),scala_sprites),
+                    return_spritesheet(goku_ssg_spritesheet,[387,34],(24,33),4,False,True,(True,False),scala_sprites),
+                    return_spritesheet(goku_ssg_spritesheet,[387,34],(24,33),4,False,True,(False,False),scala_sprites)
+                    ]
+goku_yardrat_sprite_list = [return_spritesheet(goku_spritesheet,[422,267],goku_scale,4,False,False,(False,False),scala_sprites),
+                    return_spritesheet(goku_spritesheet,[87,267],goku_scale,4,False,False,(False,False),scala_sprites),
+                    return_spritesheet(goku_spritesheet,[174,267],goku_scale,4,False,False,(True,False),scala_sprites),
+                    return_spritesheet(goku_spritesheet,[174,267],goku_scale,4,False,False,(False,False),scala_sprites),
+                    
+                    return_spritesheet(goku_ssg_spritesheet,[276,66],goku_scale_punch,4,False,True,(False,False),scala_sprites),
+                    return_spritesheet(goku_ssg_spritesheet,[292,0],goku_scale_punch,4,False,True,(False,False),scala_sprites),
+                    return_spritesheet(goku_ssg_spritesheet,[387,34],(24,33),4,False,True,(True,False),scala_sprites),
+                    return_spritesheet(goku_ssg_spritesheet,[387,34],(24,33),4,False,True,(False,False),scala_sprites)
+                    ]
+nube_voladora_sprite = pygame.image.load('item/nube.png').convert_alpha()
+nube_voladora_scale = (32,16)
+nube_voladora_scale_total = 1.5
+nube_voladora = [return_spritesheet(nube_voladora_sprite,[0,48],nube_voladora_scale,4,False,True,(False,False),nube_voladora_scale_total),
+                    return_spritesheet(nube_voladora_sprite,[0,16],nube_voladora_scale,4,False,True,(False,False),nube_voladora_scale_total),
+                    return_spritesheet(nube_voladora_sprite,[0,32],nube_voladora_scale,4,False,True,(False,False),nube_voladora_scale_total),
+                    return_spritesheet(nube_voladora_sprite,[0,32],nube_voladora_scale,4,False,True,(True,False),nube_voladora_scale_total)]
+#vegeta
+vegeta_sprite_list = [
+    return_spritesheet(vegeta_spritesheet,[1,66],vegeta_scale[0],4,False,True,(False,False),scala_sprites),
+    return_spritesheet(vegeta_spritesheet,[18,0],vegeta_scale[0],4,False,True,(False,False),scala_sprites),
+    return_spritesheet(vegeta_spritesheet,[18,33],vegeta_scale[0],4,False,True,(True,False),scala_sprites),
+    return_spritesheet(vegeta_spritesheet,[18,33],vegeta_scale[0],4,False,True,(False,False),scala_sprites),
+                    
+    return_spritesheet(vegeta_spritesheet,[205,200],vegeta_scale[1],4,False,True,(False,False),scala_sprites),
+    return_spritesheet(vegeta_spritesheet,[222,135],vegeta_scale[1],4,False,True,(False,False),scala_sprites),
+    return_spritesheet(vegeta_spritesheet,[228,167],vegeta_scale[2],4,False,True,(True,False),scala_sprites),
+    return_spritesheet(vegeta_spritesheet,[228,167],vegeta_scale[2],4,False,True,(False,False),scala_sprites)
+]
+vegeta_ssg_sprite_list = [
+    return_spritesheet(vegeta_ssg_spritesheet,[1,66],vegeta_scale[0],4,False,True,(False,False),scala_sprites),
+    return_spritesheet(vegeta_ssg_spritesheet,[18,0],vegeta_scale[0],4,False,True,(False,False),scala_sprites),
+    return_spritesheet(vegeta_ssg_spritesheet,[18,33],vegeta_scale[0],4,False,True,(True,False),scala_sprites),
+    return_spritesheet(vegeta_ssg_spritesheet,[18,33],vegeta_scale[0],4,False,True,(False,False),scala_sprites),
+                    
+    return_spritesheet(vegeta_ssg_spritesheet,[205,200],vegeta_scale[1],4,False,True,(False,False),scala_sprites),
+    return_spritesheet(vegeta_ssg_spritesheet,[222,135],vegeta_scale[1],4,False,True,(False,False),scala_sprites),
+    return_spritesheet(vegeta_ssg_spritesheet,[228,167],vegeta_scale[2],4,False,True,(True,False),scala_sprites),
+    return_spritesheet(vegeta_ssg_spritesheet,[228,167],vegeta_scale[2],4,False,True,(False,False),scala_sprites)
+]
+vegeta_MI_sprite_list = [
+    return_spritesheet(vegeta_MI_spritesheet,[1,200],vegeta_scale[0],4,False,True,(False,False),scala_sprites),
+    return_spritesheet(vegeta_MI_spritesheet,[18,135],vegeta_scale[0],4,False,True,(False,False),scala_sprites),
+    return_spritesheet(vegeta_MI_spritesheet,[18,167],vegeta_scale[0],4,False,True,(True,False),scala_sprites),
+    return_spritesheet(vegeta_MI_spritesheet,[18,167],vegeta_scale[0],4,False,True,(False,False),scala_sprites),
+                    
+    return_spritesheet(vegeta_MI_spritesheet,[205,66],vegeta_scale[1],4,False,True,(False,False),scala_sprites),
+    return_spritesheet(vegeta_MI_spritesheet,[222,0],vegeta_scale[1],4,False,True,(False,False),scala_sprites),
+    return_spritesheet(vegeta_MI_spritesheet,[228,34],vegeta_scale[2],4,False,True,(True,False),scala_sprites),
+    return_spritesheet(vegeta_MI_spritesheet,[228,34],vegeta_scale[2],4,False,True,(False,False),scala_sprites)
+]
+#trunks
+trunks_scale = (17,34)
+trunks_scale_punch = (22,32)
+trunks_sprite_list = [
+    return_spritesheet(trunks_spritesheet,[0,69],trunks_scale,4,False,True,(False,False),scala_sprites),
+    return_spritesheet(trunks_spritesheet,[18,0],trunks_scale,4,False,True,(False,False),scala_sprites),
+    return_spritesheet(trunks_spritesheet,[18,34],trunks_scale,4,False,True,(True,False),scala_sprites),
+    return_spritesheet(trunks_spritesheet,[18,34],trunks_scale,4,False,True,(False,False),scala_sprites),
+
+    return_spritesheet(trunks_spritesheet,[203,69],trunks_scale_punch,4,False,True,(False,False),scala_sprites),
+    return_spritesheet(trunks_spritesheet,[223,0],trunks_scale_punch,4,False,True,(False,False),scala_sprites),
+    return_spritesheet(trunks_spritesheet,[449,37],(26,34),4,False,True,(True,False),scala_sprites),
+    return_spritesheet(trunks_spritesheet,[449,37],(26,34),4,False,True,(False,False),scala_sprites),
+]
+
+#gogeto
+gogeto_scale_punch = (21,32)
+gogeto_sprite_list = [return_spritesheet(gogeto_sprite,[0,67],gogeto_scale,4,False,True,(False,False),scala_sprites),
+                    return_spritesheet(gogeto_sprite,[17,0],gogeto_scale,4,False,True,(False,False),scala_sprites),
+                    return_spritesheet(gogeto_sprite,[17,33],gogeto_scale,4,False,True,(True,False),scala_sprites),
+                    return_spritesheet(gogeto_sprite,[17,33],gogeto_scale,4,False,True,(False,False),scala_sprites),
+                    
+                    return_spritesheet(gogeto_sprite,[354,67],gogeto_scale_punch,4,False,True,(False,False),scala_sprites),
+                    return_spritesheet(gogeto_sprite,[368,2],gogeto_scale_punch,4,False,True,(False,False),scala_sprites),
+                    return_spritesheet(gogeto_sprite,[420,33],gogeto_scale_punch,4,False,True,(True,False),scala_sprites),
+                    return_spritesheet(gogeto_sprite,[420,33],gogeto_scale_punch,4,False,True,(False,False),scala_sprites),
+                    ]
+
+#vegito
+vegito_scale_punch = (24,32)
+vegito_sprite_list = [return_spritesheet(vegito_sprite,[22,111],vegito_scale,4,False,True,(False,False),scala_sprites),
+                         return_spritesheet(vegito_sprite,[22,40],vegito_scale,4,False,True,(False,False),scala_sprites),
+                         return_spritesheet(vegito_sprite,[22,76],vegito_scale,4,False,True,(True,False),scala_sprites),
+                         return_spritesheet(vegito_sprite,[22,76],vegito_scale,4,False,True,(False,False),scala_sprites),
+                         
+                         return_spritesheet(vegito_sprite,[101,219],vegito_scale,4,False,True,(False,False),scala_sprites),
+                         return_spritesheet(vegito_sprite,[96,149],vegito_scale,4,False,True,(False,False),scala_sprites),
+                         return_spritesheet(vegito_sprite,[1,183],(28,32),4,False,True,(True,False),scala_sprites),
+                         return_spritesheet(vegito_sprite,[1,183],(28,32),4,False,True,(False,False),scala_sprites),
+                         ]
+
+satan_sprite_list = [return_spritesheet(spritesheet_mr_satan,[0,66],satan_scale,4,False,True,(False,False),1.5),
+                         return_spritesheet(spritesheet_mr_satan,[17,0],satan_scale,4,False,True,(False,False),1.5),
+                         return_spritesheet(spritesheet_mr_satan,[17,33],satan_scale,4,False,True,(True,False),1.5),
+                         return_spritesheet(spritesheet_mr_satan,[17,33],satan_scale,4,False,True,(False,False),1.5),
+
+                         return_spritesheet(spritesheet_mr_satan, [87, 67], satan_scale, 4, False, True, (False, False),1.5),
+                         return_spritesheet(spritesheet_mr_satan, [104, 0], satan_scale, 4, False, True, (False, False),1.5),
+                         return_spritesheet(spritesheet_mr_satan, [103, 33], satan_scale_punch, 4, False, True, (True, False),1.5),
+                         return_spritesheet(spritesheet_mr_satan, [103, 33], satan_scale_punch, 4, False, True, (False, False),1.5),]
+#piccoro
+piccolo_sprite_list = [return_spritesheet(piccolo_spritesheet,[19,202],piccolo_scale[0],4,False,True,(False,False),1.5),
+                         return_spritesheet(piccolo_spritesheet,[18,135],piccolo_scale[0],4,False,True,(False,False),1.5),
+                         return_spritesheet(piccolo_spritesheet,[14,168],piccolo_scale[0],4,False,True,(True,False),1.5),
+                         return_spritesheet(piccolo_spritesheet,[14,168],piccolo_scale[0],4,False,True,(False,False),1.5),
+                         
+
+                         return_spritesheet(piccolo_spritesheet, [507, 200], piccolo_scale[1], 4, False, True, (False, False),
+                                            1.5),
+                         return_spritesheet(piccolo_spritesheet, [530, 132], piccolo_scale[1], 4, False, True, (False, False),
+                                            1.5),
+                         return_spritesheet(piccolo_spritesheet, [577, 166], piccolo_scale[1], 4, False, True, (True, False),
+                                            1.5),
+                         return_spritesheet(piccolo_spritesheet, [577, 166], piccolo_scale[1], 4, False, True, (False, False),
+                                            1.5),
+                         ]
+piccolo_orange_sprite_list = [
+                        return_spritesheet(piccolo_orange_spritesheet,[19,202],piccolo_scale[0],4,False,True,(False,False),1.5),
+                         return_spritesheet(piccolo_orange_spritesheet,[18,135],piccolo_scale[0],4,False,True,(False,False),1.5),
+                         return_spritesheet(piccolo_orange_spritesheet,[14,168],piccolo_scale[0],4,False,True,(True,False),1.5),
+                         return_spritesheet(piccolo_orange_spritesheet,[14,168],piccolo_scale[0],4,False,True,(False,False),1.5),
+                         
+
+                         return_spritesheet(piccolo_orange_spritesheet, [507, 200], piccolo_scale[1], 4, False, True, (False, False),
+                                            1.5),
+                         return_spritesheet(piccolo_orange_spritesheet, [530, 132], piccolo_scale[1], 4, False, True, (False, False),
+                                            1.5),
+                         return_spritesheet(piccolo_orange_spritesheet, [577, 166], piccolo_scale[1], 4, False, True, (True, False),
+                                            1.5),
+                         return_spritesheet(piccolo_orange_spritesheet, [577, 166], piccolo_scale[1], 4, False, True, (False, False),
+                                            1.5),
+                         ]
+piccolo_red_sprite_list = [
+                        return_spritesheet(piccolo_red_spritesheet,[19,202],piccolo_scale[0],4,False,True,(False,False),1.5),
+                         return_spritesheet(piccolo_red_spritesheet,[18,135],piccolo_scale[0],4,False,True,(False,False),1.5),
+                         return_spritesheet(piccolo_red_spritesheet,[14,168],piccolo_scale[0],4,False,True,(True,False),1.5),
+                         return_spritesheet(piccolo_red_spritesheet,[14,168],piccolo_scale[0],4,False,True,(False,False),1.5),
+                         
+
+                         return_spritesheet(piccolo_red_spritesheet, [507, 200], piccolo_scale[1], 4, False, True, (False, False),
+                                            1.5),
+                         return_spritesheet(piccolo_red_spritesheet, [530, 132], piccolo_scale[1], 4, False, True, (False, False),
+                                            1.5),
+                         return_spritesheet(piccolo_red_spritesheet, [577, 166], piccolo_scale[1], 4, False, True, (True, False),
+                                            1.5),
+                         return_spritesheet(piccolo_red_spritesheet, [577, 166], piccolo_scale[1], 4, False, True, (False, False),
+                                            1.5),
+                         ]
+#broly
+broly_sprite_list = [return_spritesheet(spritesheet_broly,[160,101],broly_scale,4,False,True,(False,False),1.5),
+                         return_spritesheet(spritesheet_broly,[161,19],broly_scale,4,False,True,(False,False),1.5),
+                         return_spritesheet(spritesheet_broly,[165,172],broly_scale,4,False,True,(True,False),1.5),
+                         return_spritesheet(spritesheet_broly,[165,172],broly_scale,4,False,True,(False,False),1.5),
+
+                         return_spritesheet(spritesheet_broly, [455, 101], broly_scale, 4, False, True, (False, False),
+                                            1.5),
+                         return_spritesheet(spritesheet_broly, [455, 19], broly_scale, 4, False, True, (False, False),
+                                            1.5),
+                         return_spritesheet(spritesheet_broly, [455, 172], broly_scale, 4, False, True, (True, False),
+                                            1.5),
+                         return_spritesheet(spritesheet_broly, [455, 172], broly_scale, 4, False, True, (False, False),
+                                            1.5),
+                         ]
+#bulma
+bulma_sprite_list = [return_spritesheet(spritesheet_bulma,[60,85],(22,38),4,False,True,(False,False),1.5),
+                         return_spritesheet(spritesheet_bulma,[60,9],(22,38),4,False,True,(False,False),1.5),
+                         return_spritesheet(spritesheet_bulma,[60,46],(22,38),4,False,True,(True,False),1.5),
+                         return_spritesheet(spritesheet_bulma,[60,46],(22,38),4,False,True,(False,False),1.5),
+                         
+                         return_spritesheet(spritesheet_bulma,[60,200],(22,38),4,False,True,(False,False),1.5),
+                         return_spritesheet(spritesheet_bulma,[60,124],(22,38),4,False,True,(False,False),1.5),
+                         return_spritesheet(spritesheet_bulma,[60,162],(22,38),4,False,True,(True,False),1.5),
+                         return_spritesheet(spritesheet_bulma,[60,162],(22,38),4,False,True,(False,False),1.5),
+                         ]
+#milk
+milk_scale = (22,38)
+milk_scale_punch = (25,38)
+milk_sprite_list = [return_spritesheet(spritesheet_milk,[60,85],(22,38),4,False,True,(False,False),1.5),
+                         return_spritesheet(spritesheet_milk,[60,9],(22,38),4,False,True,(False,False),1.5),
+                         return_spritesheet(spritesheet_milk,[60,46],(22,38),4,False,True,(True,False),1.5),
+                         return_spritesheet(spritesheet_milk,[60,46],(22,38),4,False,True,(False,False),1.5),
+
+                         return_spritesheet(spritesheet_milk,[161,92],milk_scale_punch,4,False,True,(False,False),1.5),
+                         return_spritesheet(spritesheet_milk,[157,10],milk_scale_punch,4,False,True,(False,False),1.5),
+                         return_spritesheet(spritesheet_milk,[148,51],milk_scale_punch,4,False,True,(True,False),1.5),
+                         return_spritesheet(spritesheet_milk,[148,51],milk_scale_punch,4,False,True,(False,False),1.5),
+                         ]
+#maron
+maron_sprite = pygame.image.load('personajes/To npc/Maron.png').convert_alpha()
+maron_scale = (22,38)
+maron_scale_punch = (24,32)
+maron_sprite_list = [
+    return_spritesheet(maron_sprite,[314,589],maron_scale,4,False,True,(False,False),1.5),
+    return_spritesheet(maron_sprite,[14,589],maron_scale,4,False,True,(False,False),1.5),
+    return_spritesheet(maron_sprite,[168,589],maron_scale,4,False,True,(True,False),1.5),
+    return_spritesheet(maron_sprite,[168,589],maron_scale,4,False,True,(False,False),1.5),
+
+    return_spritesheet(maron_sprite,[294,47],maron_scale_punch,4,False,True,(False,False),1.5),
+    return_spritesheet(maron_sprite,[6,47],maron_scale_punch,4,False,True,(False,False),1.5),
+    return_spritesheet(maron_sprite,[150,47],maron_scale_punch,4,False,True,(True,False),1.5),
+    return_spritesheet(maron_sprite,[150,47],maron_scale_punch,4,False,True,(False,False),1.5),
+]
+#luffy 
+luffy_sprite = pygame.image.load('personajes/luffy/41187.png')
+luffy_scala = (18,18)
+luffy_tamaño = 2
+luffy_sprite_list = [
+    return_spritesheet(luffy_sprite,[2,80],luffy_scala,4,False,True,(False,False),luffy_tamaño),
+    return_spritesheet(luffy_sprite,[2,60],luffy_scala,4,False,True,(False,False),luffy_tamaño),
+    return_spritesheet(luffy_sprite,[3,120],luffy_scala,4,False,True,(True,False),luffy_tamaño),
+    return_spritesheet(luffy_sprite,[3,120],luffy_scala,4,False,True,(False,False),luffy_tamaño),
+
+    return_spritesheet(luffy_sprite,[7,108],luffy_scala,4,False,True,(False,False),1.5),
+    return_spritesheet(luffy_sprite,[7,2],luffy_scala,4,False,True,(False,False),1.5),
+    return_spritesheet(luffy_sprite,[7,71],luffy_scala,4,False,True,(True,False),1.5),
+    return_spritesheet(luffy_sprite,[7,71],luffy_scala,4,False,True,(False,False),1.5),
+]
+#ki blast
+ki_spritesheet = pygame.image.load('skills/main.png')
+ki_scale = (16,11)
+ki_sprite_list = [
+    return_spritesheet(ki_spritesheet,[394,445],ki_scale,4,False,True,(False,False),scala_sprites),
+    return_spritesheet(ki_spritesheet,[394,445],ki_scale,4,False,True,(False,False),scala_sprites),
+    return_spritesheet(ki_spritesheet,[394,445],ki_scale,4,False,True,(False,False),scala_sprites),
+    return_spritesheet(ki_spritesheet,[394,445],ki_scale,4,False,True,(False,False),scala_sprites),
+]
+"""npc follow posis"""
+pasos_broly = {'delay_list':[5,7],'delay_list_inverse':[1,16],'max_delay':90,'posiciones':[(40,420),(160,680),(40,700),(500,370),(300,370)],'index':0,'max_index':4,'specific_index':0,'vel':0.7,
+         'vel_npc':5,'random_move':False,'time':0,'max_time':70}
+
+pasos_bulma = {'delay_list':[5,7],'delay_list_inverse':[1,16],'max_delay':90,'posiciones':[(880,600),(1100,600)],'index':0,'max_index':1,'specific_index':0,'vel':0.7,
+         'vel_npc':2,'random_move':False,'time':0,'max_time':70}
+
+pasos_milk = {'delay_list':[5,7],'delay_list_inverse':[1,16],'max_delay':90,'posiciones':[(880,100),(1100,100)],'index':0,'max_index':1,'specific_index':0,'vel':0.7,
+         'vel_npc':2,'random_move':False,'time':0,'max_time':50}
+"""only list"""
 index_sprite = 0
 index_sprite_enem = 0
-spritesheet = list_sprite[index_sprite]
+list_all_sprites = [goku_sprite_list,piccolo_sprite_list,satan_sprite_list,vegeta_sprite_list]
+list_all_sprites_alt = [goku_ssj_sprite_list,piccolo_orange_sprite_list,satan_sprite_list,vegeta_ssg_sprite_list]
+list_all_sprites_alt_2 = [goku_UI_sprite_list,piccolo_red_sprite_list,satan_sprite_list,vegeta_MI_sprite_list]
+#add
 
-
-def return_spritesheet(img,loc,dimensions,cantidad_frame,vertical_bool,horizontal_bool,list_bool_flip,scale):
-    listi = []
-    for i in range(1,cantidad_frame+1):
-        listi.append(pygame.transform.flip(pygame.transform.rotozoom(pygame.Surface.subsurface(img,(loc[0],loc[1]),(dimensions[0],dimensions[1])),0,scale),list_bool_flip[0],list_bool_flip[1]))
-        if horizontal_bool == True:
-            loc[0] += dimensions[0]
-        if vertical_bool == True:
-            loc[1] += dimensions[1]
-    return listi
-scala_sprites = 1.5
-cantidad_de_imgs = 7
-
-#probar
-up_sprite_list = [return_spritesheet(list_sprite[i],[1,68],(17,34),5,False,True,(False,False),scala_sprites) for i in range(0,cantidad_de_imgs+1)]
-prob = [return_spritesheet(list_sprite[i],[18,0],(17,34),5,False,True,(False,False),scala_sprites) for i in range(0,cantidad_de_imgs+1)]
-left_sprite_list = [return_spritesheet(list_sprite[i],[18,34],(17,34),5,False,True,(True,False),scala_sprites) for i in range(0,cantidad_de_imgs+1)]
-right_sprite_list = [return_spritesheet(list_sprite[i],[18,34],(17,34),5,False,True,(False,False),scala_sprites) for i in range(0,cantidad_de_imgs+1)]
-#probar punch
-list_down_sprite_punch_1 = [return_spritesheet(list_sprite[i],[296,0],(21,34),5,False,True,(False,False),scala_sprites) for i in range(0,cantidad_de_imgs+1)]
-list_down_sprite_punch_2 = [return_spritesheet(list_sprite[i],[296,0],(21,34),5,False,True,(True,False),scala_sprites) for i in range(0,cantidad_de_imgs+1)]
-list_up_sprite_punch_1 = [return_spritesheet(list_sprite[i],[278,66],(21,36),5,False,True,(False,False),scala_sprites) for i in range(0,cantidad_de_imgs+1)]
-list_up_sprite_punch_2 = [return_spritesheet(list_sprite[i],[278,66],(21,36),5,False,True,(True,False),scala_sprites) for i in range(0,cantidad_de_imgs+1)]
-list_right_sprite_punch_1 = [return_spritesheet(list_sprite[i],[387,34],(25,35),5,False,True,(False,False),scala_sprites) for i in range(0,cantidad_de_imgs+1)]
-list_right_sprite_punch_2 = [return_spritesheet(list_sprite[i],[490,34],(25,35),5,False,True,(False,False),scala_sprites) for i in range(0,cantidad_de_imgs+1)]
-list_left_sprite_punch_1 = [return_spritesheet(list_sprite[i],[387,34],(25,35),5,False,True,(True,False),scala_sprites) for i in range(0,cantidad_de_imgs+1)]
-list_left_sprite_punch_2 =  [return_spritesheet(list_sprite[i],[490,34],(25,35),5,False,True,(True,False),scala_sprites) for i in range(0,cantidad_de_imgs+1)]
-#probar kekkai
-list_kekkai_right_sprite = [return_spritesheet(list_sprite[i],[834,33],(17,35),5,False,False,(False,False),scala_sprites) for i in range(0,cantidad_de_imgs+1)]
-list_kekkai_left_sprite = [return_spritesheet(list_sprite[i],[834,33],(17,35),5,False,False,(True,False),scala_sprites) for i in range(0,cantidad_de_imgs+1)]
-list_kekkai_down_sprite = [return_spritesheet(list_sprite[i],[743,3],(17,35),5,False,False,(False,False),scala_sprites) for i in range(0,cantidad_de_imgs+1)]
-list_kekkai_up_sprite = [return_spritesheet(list_sprite[i],[710,68],(17,35),5,False,False,(False,False),scala_sprites) for i in range(0,cantidad_de_imgs+1)]
-
-"""goku punch"""
-down_sprite_punch_1 = return_spritesheet(spritesheet,[296,0],(21,34),5,False,True,(False,False),scala_sprites)
-down_sprite_punch_2 = return_spritesheet(spritesheet,[296,0],(21,34),5,False,True,(True,False),scala_sprites)
-up_sprite_punch_1 = return_spritesheet(spritesheet,[278,66],(21,36),5,False,True,(False,False),scala_sprites)
-up_sprite_punch_2 = return_spritesheet(spritesheet,[278,66],(21,36),5,False,True,(True,False),scala_sprites)
-right_sprite_punch_1 = return_spritesheet(spritesheet,[387,34],(25,35),5,False,True,(False,False),scala_sprites)
-right_sprite_punch_2 = return_spritesheet(spritesheet,[490,34],(25,35),5,False,True,(False,False),scala_sprites)
-left_sprite_punch_1 = return_spritesheet(spritesheet,[387,34],(25,35),5,False,True,(True,False),scala_sprites)
-left_sprite_punch_2 =  return_spritesheet(spritesheet,[490,34],(25,35),5,False,True,(True,False),scala_sprites)
-"""kekkai"""
-kekkai_right_sprite = return_spritesheet(spritesheet,[834,33],(17,35),5,False,False,(False,False),scala_sprites)
-kekkai_left_sprite = return_spritesheet(spritesheet,[834,33],(17,35),5,False,False,(True,False),scala_sprites)
-kekkai_down_sprite = return_spritesheet(spritesheet,[743,3],(17,35),5,False,False,(False,False),scala_sprites)
-kekkai_up_sprite = return_spritesheet(spritesheet,[710,68],(17,35),5,False,False,(False,False),scala_sprites)
-
-n = 0
-m = 0
-
-"""customs"""
-index_hair = 0
-index_head = 0
-hair = [pygame.image.load('custom_sprites/hair sprites/hair_spritesheet.png').convert_alpha(),pygame.image.load('custom_sprites/hair sprites/hair_spritesheet_trunks.png').convert_alpha()]
-head = [pygame.image.load('custom_sprites/head sprites/head_spritesheet.png').convert_alpha()]
-shadows_sprites = pygame.image.load('custom_sprites/shadows sprites/shadows_sprites.png').convert_alpha()
-custom_spritesheet_list = [pygame.image.load('custom_sprites/spritesheet/14502.png').convert_alpha(),pygame.image.load('custom_sprites/spritesheet/75737.png').convert_alpha(),pygame.image.load('custom_sprites/spritesheet/goku_spritesheet.png').convert_alpha()]
-index_custom = 1
-#custom charge
-scala_sprites_custom = 1.5
-hair_goku_up = return_spritesheet(hair[index_hair],[1,68],(17,34),5,False,True,(False,False),scala_sprites_custom)
-head_goku_up = return_spritesheet(head[index_head],[1,68],(17,34),5,False,True,(False,False),scala_sprites_custom)
-shadows_sprites_up = return_spritesheet(shadows_sprites,[1,68],(17,34),5,False,True,(False,False),scala_sprites_custom)
-custom_spritesheet_up = return_spritesheet(custom_spritesheet_list[index_custom],[1,68],(17,34),5,False,True,(False,False),scala_sprites_custom)
-def create_character(pos):
-    global n,m,spritesheet,index_sprite
-    surf = pygame.Surface((180,180))
-    surf.fill((255,255,255))
-    #print(round(self.num_change))
-    """if round(self.num_change) > 3:
-        self.num_change = 0
-    if p1.moverse['up'] == False and p1.moverse['down'] == False and p1.moverse['left'] == False and p1.moverse['right'] == False and p1.moverse['punch'] == False and p1.moverse['kekkai'] == False:
-        self.num_change = 0
-    img = list_img[self.indice][round(self.num_change)]
-    img.set_colorkey(self.color_back_surf)"""
-    #screen.blit(img,self.s_rect)
-
-    index_sprite += 1
-    if index_sprite > 3:
-        index_sprite = 0
-    n += 0.1
-    if n > 3:
-        n = 0
-    m += 0.15
-    if m > 4:
-        m = 0
-
-    """screen.blit(down_sprite_punch_1[round(n)], (200, 300))
-    screen.blit(down_sprite_punch_2[round(n)], (290, 300))
-    screen.blit(up_sprite_punch_1[round(n)], (200, 390))
-    screen.blit(up_sprite_punch_2[round(n)], (290, 390))
-    screen.blit(left_sprite_punch_1[round(n)], (200, 450))
-    screen.blit(right_sprite_punch_2[round(n)], (290, 450))"""
-    #custom
-    screen.blit(surf,pos)
-    screen.blit(shadows_sprites_up[round(m)], (pos[0] + 100, pos[1] + 100))
-    screen.blit(custom_spritesheet_up[round(m)], (pos[0] + 100, pos[1] + 100))
-    screen.blit(hair_goku_up[round(m)],(pos[0] + 100, pos[1] + 100))
-    screen.blit(head_goku_up[round(m)], (pos[0] + 100, pos[1] + 100))
-
+"""functs"""
 def get_locs(amount,x,y,bool_list_vert_or_hor,dimensions):
     locs = [(x,y)]
     for i in range(1,amount+1):
@@ -865,75 +772,27 @@ def get_locs(amount,x,y,bool_list_vert_or_hor,dimensions):
             x += dimensions[0]
         locs.append((x,y))
     return locs
-
-g = get_locs(3,0,0,(True,False),(20,30))
-
-
-#print(save_surf_repeated(9,pygame.image.load('map_obj/muro_1.png').convert()))
-
-
 def draw_repeated(list_surf,list_pos):
     for surf,pos in zip(list_surf,list_pos):
         screen.blit(surf,pos)
-def collide_for_color(self,color,surface_pos,screen_scale,surface_for_detect,length,dimentions):
-    #print(p1.s_rect)
-    posicion_de_obtencion_left = (surface_pos[0] - length,surface_pos[1])
-    posicion_de_obtencion_right = (surface_pos[0] + dimentions[0] + length,surface_pos[1])
-    posicion_de_obtencion_up = (surface_pos[0] + dimentions[0]//2,surface_pos[1] + dimentions[1]//2 - length)
-    posicion_de_obtencion_down = (surface_pos[0] + dimentions[0]//2,surface_pos[1] + dimentions[1] + length)
-    if hover('u', surface_pos, (0, 0), screen_scale):
-        if posicion_de_obtencion_left[0] > 0:
-                color_detect_left = surface_for_detect.get_at((posicion_de_obtencion_left))
-                if color_detect_left == color:
+def collide_for_color(color,surface_pos,screen_scale,surface_for_detect,length,dimentions,vel):
+    rect = [surface_pos[0],surface_pos[1],dimentions[0],dimentions[1]]
 
-                    Rect_of_color_left = pygame.Rect(posicion_de_obtencion_left, dimentions)
+    color_box = Color_box(rect,surface_for_detect,length,[0, 0, screen_scale[0],screen_scale[1]])
+    if color_box[0] == color:
+        surface_pos[1] += vel
+    if color_box[1] == color:
+        surface_pos[1] -= vel
 
-                    """colision personaje"""
-                    if surface_pos.colliderect(Rect_of_color_left):
-                        surface_pos[0] += self.velocidad*2
-        if posicion_de_obtencion_right[0] < 1200:
-                color_detect_right = surface_for_detect.get_at((posicion_de_obtencion_right))
-                if color_detect_right == color:
-                    Rect_of_color_right = pygame.Rect(posicion_de_obtencion_right,dimentions)
-                    if surface_pos.colliderect(Rect_of_color_right):
-                        surface_pos[0] -= self.velocidad*2
-        if posicion_de_obtencion_up[1] > 0:
-                color_detect_up = surface_for_detect.get_at((posicion_de_obtencion_up))
-                if color_detect_up == color:
-                    Rect_of_color_up = pygame.Rect(posicion_de_obtencion_up, dimentions)
-                    if surface_pos.colliderect(Rect_of_color_up):
-                        surface_pos[1] += self.velocidad*2
-        if posicion_de_obtencion_down[1] < 720:
-                color_detect_down = surface_for_detect.get_at((posicion_de_obtencion_down))
-                if color_detect_down == color:
-                    Rect_of_color_down = pygame.Rect(posicion_de_obtencion_down, dimentions)
-                    if surface_pos.colliderect(Rect_of_color_down):
-                        surface_pos[1] -= self.velocidad*2
-
-def invisible_object(pos,dimentions,surface1,colors_allowed):
-    # Obtener información de píxeles de la primera superficie
-    pixels_to_draw = []
-    for x in range(pos[0],pos[0]+dimentions[0]):
-        for y in range(pos[1],pos[1]+dimentions[1]):
-            if hover('u',p1.s_rect,(0,0),(1280,720)):
-                color = surface1.get_at((x, y))
-                if color != (0, 0, 0, 255) and color in colors_allowed:  # Si el píxel no es transparente (negro)
-                    pixels_to_draw.append(((x, y), color))
-    return pixels_to_draw
-def draw_the_surf_in_other(pixels_to_draw,surface2):
-    # Dibujar los píxeles en la segunda superficie
-    if hover('u', p1.s_rect, (0, 0), (1280, 720)):
-        for (x, y), color in pixels_to_draw:
-            surface2.set_at((x, y), color)
-
-
+    if color_box[2] == color:
+        surface_pos[0] += vel
+    if color_box[3] == color:
+        surface_pos[0] -= vel
 def get_rect_list(list_surfs,center_list):
     rects = []
     for surfs,center in zip(list_surfs,center_list):
         rects.append(surfs.get_rect(center=center))
     return rects
-r = pygame.image.load('map_copy_transparent.png')
-t = pygame.image.load('objetos_superpuestos/arbol.png')
 def get_color_in_img(img):
     width = img.get_width()
     height = img.get_height()
@@ -943,29 +802,16 @@ def get_color_in_img(img):
         for y in range(height):
             color = img.get_at((x, y))
 
-            # Convertir el color a tupla para comparar
-            #color_tupla = (color.r, color.g, color.b, color.a)
-
-            # Si el color no estÃ¡ en la lista, agrÃ©galo
             if color not in colores_unicos:
                 colores_unicos.append(color)
     return colores_unicos
-
-color_permitido = get_color_in_img(t)
-def indice_punto_mas_cercano(punto_referencia, lista_puntos):
-    indice = min(range(len(lista_puntos)), key=lambda i: (lista_puntos[i][0] - punto_referencia[0])**2 + (lista_puntos[i][1] - punto_referencia[1])**2)
-    return indice
-
-# Ejemplo de uso:
-punto_referencia = (2, 3)
-lista_puntos = [(1, 2), (3, 4), (5, 6)]
-indice_cercano = indice_punto_mas_cercano(punto_referencia, lista_puntos)
-print("Ãndice del punto mÃ¡s cercano:", indice_cercano)
-def create_the_npcs(list_imgs,cantidad,area_pos,area_dimention,vel_tran,vel_move,dimention_surf,max_num_lag,life,id_map):
-    npcs = {'id_map':id_map,'cantidad':cantidad,'list_img': list_imgs,'rect_list':[],'center_rect':[(0,0)],'vel_transition':vel_tran,'vel_move':vel_move,'life_list':life,'indice':[],'number_change':[],'max_num_change':3,'scale':dimention_surf,'num_lag':0,'max_num_lag':max_num_lag}
+def index_for_angle(dict_ind,pos_surf,pos_cursor):
+    angul = round(angle(pos_surf,pos_cursor))
+    list_anguls = [90,-90,180,0]
+    dict_ind['indice'][0] = indice_numero_mas_cercano(list_anguls,angul)
+def create_the_npcs(list_imgs,cantidad,area_pos,area_dimention,vel_tran,vel_move,dimention_surf,max_num_lag,life,max_life,id_map):
+    npcs = {'id_map':id_map,'cantidad':cantidad,'list_img': list_imgs,'rect_list':[],'center_rect':[(0,0)],'vel_transition':vel_tran,'vel_move':vel_move,'life_list':life,'max_life':max_life,'vel_recovery':1,'indice':[],'number_change':[],'max_num_change':3,'scale':dimention_surf,'num_lag':0,'max_num_lag':max_num_lag,'sum_index':0,'multiply_index':1,'inmortal_bool':True}
     indice_obtencion = 0
-    tmp = max(npcs['center_rect'])
-    indexi = npcs['center_rect'].index(tmp)
     num_pa_verificar = 0
     for i in range(1,cantidad+1):
         num_pa_verificar += 1
@@ -978,68 +824,100 @@ def create_the_npcs(list_imgs,cantidad,area_pos,area_dimention,vel_tran,vel_move
             indice_obtencion += 1
             npcs['rect_list'].append(pygame.Rect(npcs['center_rect'][indice_obtencion],npcs['scale']))
     return npcs
-#print(create_the_npcs(mainer,5,(0,0),(500,670),2,5,(32,32)))
-the_npc_0 = create_the_npcs([up_sprite_list[index_sprite_enem],prob[index_sprite_enem],left_sprite_list[index_sprite_enem],right_sprite_list[index_sprite_enem]],5,(0,0),(500,670),2,5,(32,32),40,200,(0,0))
-def move_npc_for_enemy(self,npc_dict,distancia_mostrar):
-    #avistamiento para ver
-    #print(npc_dict['indice'])
-    #print(npc_dict['number_change'])
+def Avatar(screen,npc_dict,up_bool,down_bool,left_bool,right_bool,punch_bool,defense_bool):
+    indice = 0
+    print(round(npc_dict['number_change'][indice]))
+    for pos, index in zip(npc_dict['rect_list'], npc_dict['indice']):
+        surf_life = pygame.Surface((npc_dict['life_list'] // 10, npc_dict['life_list'] // 20))
+        surf_life.fill((255, 0, 0))
+        screen.blit(surf_life, npc_dict['rect_list'][indice])
+        screen.blit(npc_dict['list_img'][npc_dict['indice'][indice]+ npc_dict['sum_index'] * npc_dict['multiply_index']][round(npc_dict['number_change'][indice])], npc_dict['rect_list'][indice])
+        if up_bool == True:
+            npc_dict['indice'][indice] = 0
+            npc_dict['rect_list'][indice][1] -= npc_dict['vel_move']
+        if down_bool == True:
+            npc_dict['indice'][indice] = 1
+            npc_dict['rect_list'][indice][1] += npc_dict['vel_move']
+        if left_bool == True:
+            npc_dict['indice'][indice] = 2
+            npc_dict['rect_list'][indice][0] -= npc_dict['vel_move']
+        if right_bool == True:
+            npc_dict['indice'][indice] = 3
+            npc_dict['rect_list'][indice][0] += npc_dict['vel_move']
+        """mover multiplicador"""
+        if punch_bool == True:
+            npc_dict['sum_index'] = 4
+        if punch_bool == False:
+            npc_dict['sum_index'] = 0
+        if defense_bool == True:
+            npc_dict['multiply_index'] = 2
+        if defense_bool == False:
+            npc_dict['multiply_index'] = 1
+        """mover frames"""
 
-    indice = indice_punto_mas_cercano(p1.s_rect,npc_dict['rect_list'])
-    #print(npc_dict['number_change'][indice])
+        if up_bool == True or down_bool == True or left_bool == True or right_bool == True or punch_bool == True:
+            npc_dict['number_change'][indice] += npc_dict['vel_transition']
+
+            if round(npc_dict['number_change'][indice]) >= npc_dict['max_num_change']:
+                npc_dict['number_change'][indice] = 0
+        if up_bool == False and down_bool == False and left_bool == False and right_bool == False and punch_bool == False:
+            npc_dict['number_change'][indice] = 0
+
+def Colliderect(rect,rect2):
+    hit = Hit_box(rect,rect2,0)
+    if hit[0] == True or hit[1] == True or hit[2] == True or hit[3] == True:
+        return True
+    else:
+        return False
+
+def move_npc_for_enemy(screen,npc_dict,npc_dict_2,distancia_mostrar,bool_exist,id_map_current,fight_bool,damage_bool,surf_player_pos):
+    indice = indice_punto_mas_cercano(surf_player_pos,npc_dict['rect_list'])
+    surf_life = pygame.Surface((npc_dict['life_list']//10,npc_dict['life_list']//20))
+    surf_life.fill((255,0,0))
+    if npc_dict['inmortal_bool'] == True:
+        npc_dict['life_list'] = npc_dict['max_life']
     for pos,index,num_img in zip(npc_dict['rect_list'],npc_dict['indice'],npc_dict['number_change']):
 
+        if id_map_current == npc_dict['id_map']:
+            if avistamiento('a',pos,surf_player_pos,distancia_mostrar):
+                if bool_exist == True:
+                    screen.blit(surf_life,pos)
+                    screen.blit(npc_dict['list_img'][index+npc_dict['multiply_index']][round(num_img)],pos)#
+            if fight_bool == True:
+        
+                if damage_bool == True:
+                    npc_dict['life_list'] -= npc_dict['vel_move']
+                if Colliderect(npc_dict['rect_list'][indice],npc_dict_2['rect_list'][indice]) == True:
+                    #print('entroooooooooo')
+                    npc_dict['multiply_index'] = 4
+                    npc_dict_2['life_list'] -= npc_dict['vel_move']
+                else:
+                    npc_dict['multiply_index'] = 0
+            if avistamiento('a', pos, surf_player_pos, distancia_mostrar//3):
+                index_for_angle(npc_dict,npc_dict['rect_list'][indice],surf_player_pos)
+                npc_dict['number_change'][indice] += npc_dict['vel_transition']
+                if round(npc_dict['number_change'][indice]) >= npc_dict['max_num_change']:
+                    npc_dict['number_change'][indice] = 0
+                """arriba y abajo"""
+                x = indice
+                if npc_dict['rect_list'][indice][1] > surf_player_pos[1]:
+                    npc_dict['rect_list'][indice][1] -= npc_dict['vel_move']
 
-        if avistamiento(self,pos,p1.s_rect,distancia_mostrar):
-            #print(npc_dict['list_img'][0][index][num_img])
-            screen.blit(npc_dict['list_img'][index][round(num_img)],pos)#
-        if avistamiento(self, pos, p1.s_rect, distancia_mostrar//3):
-            #num_img += 0.15
-            #for y in range(len(npc_dict['number_change'])):
-            npc_dict['number_change'][indice] += 0.15
-            if npc_dict['number_change'][indice] > 3:
-                npc_dict['number_change'][indice] -= 3
-            #for x in range(len(npc_dict['indice'])):
-            """arriba y abajo"""
-            x = indice
-            if npc_dict['rect_list'][indice][1] > self.s_rect.y:
-                npc_dict['rect_list'][indice][1] -= 3
-                if npc_dict['indice'][x] > 0:
-                    npc_dict['indice'][x] -= 1
-                if npc_dict['indice'][x] < 0:
-                    npc_dict['indice'][x] += 1
+                elif npc_dict['rect_list'][indice][1] < surf_player_pos[1]:
+                    npc_dict['rect_list'][indice][1] += npc_dict['vel_move']
+                """left right"""
+                if npc_dict['rect_list'][indice][0] > surf_player_pos[0]:
+                    npc_dict['rect_list'][indice][0] -= npc_dict['vel_move']
+                elif npc_dict['rect_list'][indice][0] < surf_player_pos[0]:
+                    npc_dict['rect_list'][indice][0] += npc_dict['vel_move']
+            if anti_avistamiento('',pos, surf_player_pos,distancia_mostrar//3):
+                npc_dict['number_change'][indice] = 0
 
-            elif npc_dict['rect_list'][indice][1] < self.s_rect.y:
-                npc_dict['rect_list'][indice][1] += 3
-                if npc_dict['indice'][x] > 1:
-                    npc_dict['indice'][x] -= 1
-                if npc_dict['indice'][x] < 1:
-                    npc_dict['indice'][x] += 1
-            """left right"""
-            if npc_dict['rect_list'][indice][0] > self.s_rect.x:
-                npc_dict['rect_list'][indice][0] -= 3
-                if npc_dict['indice'][x] > 2:
-                    npc_dict['indice'][x] -= 1
-                if npc_dict['indice'][x] < 2:
-                    npc_dict['indice'][x] += 1
-            elif npc_dict['rect_list'][indice][0] < self.s_rect.x:
-                npc_dict['rect_list'][indice][0] += 3
-                if npc_dict['indice'][x] > 3:
-                    npc_dict['indice'][x] -= 1
-                if npc_dict['indice'][x] < 3:
-                    npc_dict['indice'][x] += 1
-        if anti_avistamiento(self,pos, p1.s_rect,20):
-            if npc_dict['number_change'][indice] > 0:
-                npc_dict['number_change'][indice] -= 1
-            if npc_dict['number_change'][indice] < 0:
-                npc_dict['number_change'][indice] += 1
-
-    # avistamiento para mover
 def move_npc_for_npc(self,npc_dict,distancia_mostrar):
     valor = random.randint(0,4)
     caminar = random.choice([True,False])
     npc_dict['num_lag'] += round(npc_dict['vel_transition'])
-    indice = indice_punto_mas_cercano(p1.s_rect, npc_dict['rect_list'])
+    indice = 0
     for pos,index in zip(npc_dict['rect_list'],npc_dict['indice']):
         if avistamiento(self,pos,p1.s_rect,distancia_mostrar):
             screen.blit(npc_dict['list_img'][index][0],pos)
@@ -1069,11 +947,6 @@ def npc_follow(screen,npc_dict,dict_track,per_pos,id_map_current,bool_exist):
     if id_map_current == npc_dict['id_map']:
         if bool_exist == True:
             screen.blit(npc_dict['list_img'][npc_dict['indice'][indice]][round(npc_dict['number_change'][indice])], npc_dict['rect_list'][indice])
-    print(dict_track['posiciones'][round(dict_track['index'])])
-    #pro
-    #if (npc_dict['rect_list'][indice][0],npc_dict['rect_list'][indice][1]) == (dict_track['posiciones'][round(dict_track['index'])][0],dict_track['posiciones'][round(dict_track['index'])][1]):
-        #dict_track['index'] += 1
-    #indice = indice_punto_mas_cercano(per_pos, dict['rect_list'])
     rand = random.randint(0,dict_track['max_delay'])
     if dict_track['random_move'] == True:
         if rand in dict_track['delay_list']:
@@ -1083,17 +956,12 @@ def npc_follow(screen,npc_dict,dict_track,per_pos,id_map_current,bool_exist):
             if dict_track['index'] >= 0:
                 dict_track['index'] -= dict_track['vel']
     if dict_track['random_move'] == False:
-        print(dict_track['time'])
         dict_track['time'] += 1
         if dict_track['time'] > dict_track['max_time']:
             dict_track['index'] += dict_track['vel']
             dict_track['time'] = 0
         if dict_track['index'] > dict_track['max_index']:
             dict_track['index'] = 0
-    """if dict_track['index'] < dict_track['max_index']:
-        dict_track['index'] += dict_track['vel']
-    if dict_track['index'] == dict_track['max_index']:
-        dict_track['index'] = 0"""
 
     if avistamiento('a',npc_dict['rect_list'][dict_track['specific_index']],dict_track['posiciones'][round(dict_track['index'])],10000):
         npc_dict['number_change'][indice] += npc_dict['vel_transition']
@@ -1118,10 +986,7 @@ def create_text(cuadro_de_texto,palabras,max_delay,color_text,scale_text,maximo_
     dicti = {'cuadro':cuadro_de_texto,'palabras':palabras,'delay_list':delay_list,'max_delay':max_delay,'color':color_text,'scale':scale_text,'index':0,'maximo_de_palabras_index':maximo_de_palabras,
              'random_move':False,'time':0,'max_time':max_time,'id_map':id_map}
     return dicti
-texto_normal = create_text(pygame.transform.rotozoom(pygame.image.load('multiverse/cuadros de texto/cuadro_1.png'),0,0.1),
-                           ['Ora','ora','inutil','bastardo'],
-                           50,(0,0,0),24,3,[0,5,9,24,7,8],60,(0,0))
-def hablar(dict,pos_list,personaje_pos):
+def hablar(dict,pos_list,personaje_pos,screen):
     indice = indice_punto_mas_cercano(personaje_pos, pos_list)
     rand = random.randint(1,dict['max_delay'])
     rand_text = random.randint(0,dict['maximo_de_palabras_index'])
@@ -1133,23 +998,14 @@ def hablar(dict,pos_list,personaje_pos):
         if rand in dict['delay_list']:
             string_blit(texto,(pos_list[indice][0] - 60,pos_list[indice][1] - 50),dict['scale'],dict['color'])
     if dict['random_move'] == False:
-        string_blit(dict['palabras'][dict['index']],(pos_list[indice][0] - 60,pos_list[indice][1] - 50),dict['scale'],dict['color'])
+        string_blit(dict['palabras'][dict['index']],(pos_list[indice][0] - 60,pos_list[indice][1] - 50),dict['scale'],dict['color'],screen)
         dict['time'] += 1
         if dict['time'] > dict['max_time']:
             dict['index'] += 1
             dict['time'] = 0
         if dict['index'] > dict['maximo_de_palabras_index']:
             dict['index'] = 0
-tienda_de_antiguedades = {'id':(0,0),'place_img':pygame.image.load('places/restaurant/159967 (1).png'),'place_pos':[218,138],'place_pos_door':pygame.Rect([485,285],(40,60)),
-                          'door_color_detect':(0,255,0),
-                          'place_mask_collision':pygame.image.load('places/restaurant/mask.png'),'color_collision':(255,0,0),
-                          'active':False,'num_press':0,'max_num_press':200}
-tienda_electrónica = {'id':(2,0),'place_img':pygame.image.load('places/tienda electronica/159966.png'),'place_pos':[380,-20],'place_pos_door':pygame.Rect([433,206],(40,60)),
-                          'door_color_detect':(0,255,0),
-                          'place_mask_collision':pygame.image.load('places/restaurant/mask.png'),'color_collision':(255,0,0),
-                          'active':False,'num_press':0,'max_num_press':200}
 def create_place(screen,dict,dict_map,bool_press,bool_despress,per_pos,id_map):
-
     if id_map == dict['id']:
         pygame.draw.rect(screen,(255,0,0),dict['place_pos_door'])
         if hover('a',per_pos,(dict['place_pos_door'][0],dict['place_pos_door'][1]),(dict['place_pos_door'][2],dict['place_pos_door'][3])):
@@ -1166,22 +1022,24 @@ def create_place(screen,dict,dict_map,bool_press,bool_despress,per_pos,id_map):
 
 #def destruir()
 """xp"""
-def obtener_color(dict,nombre_de_json):
+def Save(dict,nombre_de_json):
     to_py = f'value = {dict}'
     with open(nombre_de_json, "w") as archivo_jsoni:
         archivo_jsoni.write(to_py)
-EXP = {'xp':0,'max_xp':3000,'cantidad':1,'color_xp':(255,0,0),'escala_barra':[5,20],'pos':(20,100)}
+EXP = value
 objetos_de_obtencion = ['']
-Misiones_list = {'kills':0,'kills_vel_xp':0,'recorrido':0,'recorrido_vel_xp':0.1}
+Misiones_list = value_metas
 
-#poner en el bucle
-obtener_color(EXP,'xd.py')
-obtener_color(Misiones_list,'metas_xp.py')
+#Exp
+
+def save_xp():
+    Save(EXP,'xd.py')
+    Save(Misiones_list,'metas_xp.py')    
 def obtener_metas(rect_enem,life_enem):
     if p1.s_rect.colliderect(rect_enem) and life_enem <= 1:
         Misiones_list['kills'] += 1
     if p1.moverse['up'] == True or p1.moverse['down'] == True or p1.moverse['left'] == True or p1.moverse['right'] == True:
-        Misiones_list['recorrido'] += p1.velocidad
+        Misiones_list['recorrido'] += 1
 def use_xp(screen,Exp_dict,bool_sum_xp):
     if bool_sum_xp == True:
         if Exp_dict['xp'] < Exp_dict['max_xp']:
@@ -1190,15 +1048,11 @@ def use_xp(screen,Exp_dict,bool_sum_xp):
     barra_xp = pygame.Surface((Exp_dict['escala_barra']))
     barra_xp.fill(Exp_dict['color_xp'])
     screen.blit(barra_xp,Exp_dict['pos'])
-    string_blit(str(Exp_dict['xp']),Exp_dict['pos'],34,(255,255,255))
-
+    string_blit(str(Exp_dict['xp']),Exp_dict['pos'],34,(255,255,255),screen)
+"""skills"""
 def za_warudo():
-    #p1.vel_trasicion_img = 0
-    #p1.velocidad = 0
-    enem.vel_transition = 0
-    enem.vel = 0
-    enem.num_change_enem = 0
-    enem.damage = 0
+    print('za_warudo')
+    
 def yellow_temperance():
     global index_sprite
     p1.vida_value = 500
@@ -1206,34 +1060,15 @@ def yellow_temperance():
 def one_punch():
     p1.vida_value = 400
     p1.damage = 50
-    enem.damage = 0
+    """enem.damage = 0"""
 def cancel():
     p1.vel_trasicion_img = 0.15
     p1.velocidad = 5
-    enem.vel_transition = 1
-    enem.vel = 3
-    enem.num_change_enem = 0
-    enem.damage = 5
-#def reiniciar(list_a_reiniciar,list_orden_reinicio):
-
-za_warudo_skill = {'img':t,'img_pos':(0,0),'portada':pygame.transform.scale(pygame.image.load('portraits/stands/THE-WORLD_2.png'),(150,30)),
-                   'portada_pos':(20,120),'damage':200,'increase':5,'time':300,'max_time':300,'time_pos':[20,200],
-                   'vel_charge':1,'delay_damage':300,'function':za_warudo,'bool_atack':False}
-crazy_diamond = {'img':t,'img_pos':(0,0),'portada':pygame.transform.rotozoom(pygame.image.load('portraits/stands/THE-WORLD_2.png'),0,0.5),
-                 'portada_pos':(20,120),'damage':200,'increase':5,'time':300,'max_time':300,'time_pos':[20,200],
-                   'vel_charge':1,'delay_damage':300,'function':za_warudo,'bool_atack':False}
-yellow_temperance = {'img':t,'img_pos':(0,0),'portada':pygame.transform.rotozoom(pygame.image.load('portraits/stands/yellow-temperance.png'),0,0.5),
-                     'portada_pos':(20,120),'damage':200,'increase':5,'time':300,'max_time':300,'time_pos':[20,200],
-                   'vel_charge':1,'delay_damage':300,'function':yellow_temperance,'bool_atack':False}
-One_punch = {'img':t,'img_pos':(0,0),'portada':pygame.transform.rotozoom(pygame.image.load('portraits/stands/ONE-PUNCH-MAN.png'),0,0.5),
-                     'portada_pos':(20,120),'damage':200,'increase':5,'time':300,'max_time':3000000,'time_pos':[20,200],
-                   'vel_charge':100,'delay_damage':300,'function':one_punch,'bool_atack':False}
-
-skills = {'skills':[za_warudo_skill,yellow_temperance,One_punch],'index':0,'max_index':2}
+    
 def use_skills(pantalla,dict,bool_use):
     """mostrar"""
     pantalla.blit(dict['portada'], dict['portada_pos'])
-    string_blit(str(dict['time']),dict['time_pos'],45,(255,0,0))
+    string_blit(str(dict['time']),dict['time_pos'],45,(255,0,0),pantalla)
 
     if bool_use == True:
         dict['bool_atack'] = True
@@ -1257,30 +1092,408 @@ def use_skills(pantalla,dict,bool_use):
             dict['time'] += dict['vel_charge']
 
 
-"""sword float"""
+
+def rotate_surf(surf,cantidad,angulo,scale):
+    list_rotate = []
+    dicti = {'surf_list':list_rotate,'distance':30,'min_distance':5,'max_distance':300,'vel':5,'alpha':0}
+    angle = angulo
+    for i in range(1,cantidad+1):
+        list_rotate.append(pygame.transform.rotozoom(surf,angle,scale))
+        angle += angulo
+    return dicti
+getsuga = rotate_surf(pygame.image.load('multiverse/effects/getsuga tenshou/getsuga tenshou_2.png').convert_alpha(),13,180,0.2)
+
+def press_button_time(screen,list_num,max_num_random,surf_normal,surf_press_list,pos):
+    num = random.randint(0,max_num_random)
+    rand = random.randint(0,1)
+    if num in list_num:
+        screen.blit(surf_press_list[rand],pos)
+    else:
+        screen.blit(surf_normal, pos)
+
+"""fighter 2d"""
+def gravedad(dict,vel_impulso,vel_caida,bool_inpulso,punto_suelo):
+    if bool_inpulso == True:
+        dict['rect_list'][0][1] -= vel_impulso
+    if dict['rect_list'][0][1] < punto_suelo:
+        dict['rect_list'][0][1] += vel_caida
+    if dict['rect_list'][0][1] > punto_suelo:
+        dict['rect_list'][0][1] -= vel_caida
+
+def reject_body(index_body,dict1,dict2,bool_grab):
+    up_left = (dict1['rect_list'][index_body][0],dict1['rect_list'][index_body][1])
+    up_right = (dict1['rect_list'][index_body][0] + dict1['rect_list'][index_body][2],dict1['rect_list'][index_body][1])
+    down_left = (dict1['rect_list'][index_body][0],dict1['rect_list'][index_body][1] + dict1['rect_list'][index_body][3])
+    down_right = (dict1['rect_list'][index_body][0] + dict1['rect_list'][index_body][2],dict1['rect_list'][index_body][1] + dict1['rect_list'][index_body][3])
+    if hover('x',up_left,dict2['rect_list'][index_body],(dict2['rect_list'][index_body][3],dict2['rect_list'][index_body][3])) == True or hover('x',down_left,dict2['rect_list'][index_body],(dict2['rect_list'][index_body][3],dict2['rect_list'][index_body][3])) == True:
+        if bool_grab == False:
+            dict1['rect_list'][index_body][0] += dict1['vel']
+        if bool_grab == True:
+            dict2['rect_list'][index_body][0] += dict2['vel']*3
+    if hover('x',up_right,dict2['rect_list'][index_body],(dict2['rect_list'][index_body][3],dict2['rect_list'][index_body][3])) == True or hover('x',down_right,dict2['rect_list'][index_body],(dict2['rect_list'][index_body][3],dict2['rect_list'][index_body][3])) == True:
+        if bool_grab == False:
+            dict1['rect_list'][index_body][0] -= dict1['vel']
+        if bool_grab == True:
+            dict2['rect_list'][index_body][0] -= dict2['vel']*3
+
+
+
+"""fonts"""
+def encontrar_posiciones(palabra, lista):
+    posiciones = [i for i, elemento in enumerate(lista) if elemento == palabra]
+    return posiciones if posiciones else f"La palabra '{palabra}' no se encuentra en la lista."
+
+def create_text_by_font_img(screen,posiciones,font_imgs,pos_txt):
+    for ind_pos in posiciones:
+        screen.blit(font_imgs[ind_pos],pos_txt)
+        #for pos in pos_txt:
+def text_blit_by_far(per_pos,speaker_pos,distance_speak,text_no_far,text_far,id_map_current,bool_exist,screen):
+    if bool_exist == True:
+        if id_map_current == text_no_far['id_map']:
+            if avistamiento('a',per_pos,speaker_pos,distance_speak):
+                hablar(text_no_far,[speaker_pos],per_pos,screen)
+        if id_map_current == text_far['id_map']:
+            if anti_avistamiento('a',per_pos,speaker_pos,distance_speak):
+                hablar(text_far, [speaker_pos], per_pos,screen)
+
+"""asignar"""
+p1 = player
+"""imagenes y colision"""
+indice_west_city = 1
+west_city_surf_1 = [return_spritesheet(pygame.image.load('map_extended.png').convert_alpha(),[0,0],(1280,720),3,False,True,(False,False),1),
+                    return_spritesheet(pygame.image.load('map_extended.png').convert_alpha(),[0,720],(1280,720),3,False,True,(False,False),1),
+                    return_spritesheet(pygame.image.load('map_extended.png').convert_alpha(),[0,1440],(1280,720),3,False,True,(False,False),1),
+                    return_spritesheet(pygame.image.load('map_extended.png').convert_alpha(),[0,2160],(1280,720),3,False,True,(False,False),1)]
+
+west_city_surf_2 = [return_spritesheet(pygame.image.load('map_copy.png').convert(),[0,0],(1280,720),3,False,True,(False,False),1),
+                    return_spritesheet(pygame.image.load('map_copy.png').convert(),[0,720],(1280,720),3,False,True,(False,False),1),
+                    return_spritesheet(pygame.image.load('map_copy.png').convert(),[0,1440],(1280,720),3,False,True,(False,False),1),
+                    return_spritesheet(pygame.image.load('map_copy.png').convert(),[0,2160],(1280,720),3,False,True,(False,False),1)]
+
+west_city_surf_3 = [return_spritesheet(pygame.image.load('map_copy_transparent_2.png').convert_alpha(),[0,0],(1280,720),3,False,True,(False,False),1),
+                    return_spritesheet(pygame.image.load('map_copy_transparent_2.png').convert_alpha(),[0,720],(1280,720),3,False,True,(False,False),1),
+                    return_spritesheet(pygame.image.load('map_copy_transparent_2.png').convert_alpha(),[0,1440],(1280,720),3,False,True,(False,False),1),
+                    return_spritesheet(pygame.image.load('map_copy_transparent_2.png').convert_alpha(),[0,2160],(1280,720),3,False,True,(False,False),1)]
+west_city = {'surf_normal':west_city_surf_1,'index_x':0,'index_y':0,'max_index_x':2,'max_index_y':3,
+             'surf_collide':west_city_surf_2,'surf_alpha':west_city_surf_3}
+capsule_corp = {'surf_normal':west_city_surf_1,'index_x':0,'index_y':0,'max_index_x':1,'max_index_y':2,
+             'surf_collide':west_city_surf_2,'surf_alpha':west_city_surf_3}
+
+world_map = {'maps':[west_city,capsule_corp],'index':0,'max_index':1}
+
+
+"""definir algo"""
+p1.punch_speed_multiplier = 5
+p1.s_rect.x = 400
+p1.s_rect.y = 300
+map_activates = 'training'
+contador_de_salida = 0
+"""lugares"""
+indice_lugares = 0
+lugares = [pygame.image.load('lugares/mini/campo_cuadricula_mini.png').convert(),pygame.image.load('lugares/mini/space_rock_mini.png').convert(),pygame.image.load('lugares/mini/grand_kai_tournament_mini.png').convert(),pygame.image.load('lugares/mini/mini_fondo.jpg').convert()]
+#map
+mapita = [pygame.image.load('lugares/campo_cuadricula.png').convert(),pygame.image.load('lugares/space_rock.png').convert(),pygame.image.load('lugares/papaya_tournament.png').convert(),pygame.image.load('lugares/fondo.jpg').convert()]
+mapita_collision = [pygame.image.load('lugares/isla_kame_collisions.png').convert(),pygame.image.load('lugares/space_rock_collide.png').convert(),pygame.image.load('lugares/papaya_tournament_collide.png').convert(),pygame.image.load('lugares/fondo.jpg').convert()]
+mapita_superpos = [pygame.image.load('lugares/isla_kame.png').convert(),pygame.image.load('lugares/papaya_tournament.png').convert(),pygame.image.load('lugares/grand_kai_tournament_2.png').convert(),pygame.image.load('lugares/fondo.jpg').convert()]
+"""portadas"""
+portraits = [pygame.image.load('portraits/goku.png').convert(),pygame.image.load('portraits/vegeta.png').convert(),
+               pygame.image.load('portraits/trunks.png').convert(),pygame.image.load('portraits/piccoro.png').convert(),
+             pygame.image.load('portraits/dante.png').convert(),pygame.transform.rotozoom(pygame.image.load('portraits/saitama.png').convert(),0,0.2)]
+
+
+portrait_modos = [pygame.image.load('mode_titles/training.png').convert_alpha(),pygame.image.load('mode_titles/History.png').convert_alpha(),pygame.image.load('mode_titles/Tournament.png').convert_alpha(),
+                  pygame.image.load('mode_titles/Free-battle.png').convert_alpha(),pygame.image.load('mode_titles/SIMULATION.png').convert_alpha(),pygame.image.load('mode_titles/2D-Fight.png').convert_alpha(),pygame.image.load('mode_titles/other.png').convert_alpha()]
+ind_mode = 0
+modos_string = ['training','history','tournament','free_battle','simulation','2D fight','other']
+
+
+
+"""guardar"""
+cosas_pa_guardar = {}
+def save(name_of_py,list_surfs):
+    posis = list_surfs
+    to_py = f'value = {posis}'
+    with open(name_of_py, "w") as archivo_jsoni:
+        archivo_jsoni.write(to_py)
+
+
+
+
+
+
+"""npc xd"""
+
+bulma = create_the_npcs(bulma_sprite_list,1,(30,70),(400,400),0.15,2,(32,32),1,300,300,(1,0))
+text_bulma_normal = create_text(pygame.transform.rotozoom(pygame.image.load('portraits/text box/normal.png'),0,1),
+                           ['...','....'],
+                           50,(255,255,255),24,1,[0,5,9,24,7,8],10,(1,0))
+text_bulma_nearby = create_text(pygame.transform.rotozoom(pygame.image.load('portraits/text box/emergencia.png'),0,1),
+                           ['habla con el'],
+                           50,(255,255,255),24,0,[0,5,9,24,7,8],60,(1,0))
+#milk
+milk = create_the_npcs(milk_sprite_list,1,(30,70),(400,400),0.15,2,(32,32),1,300,300,(1,0))
+text_milk_normal = create_text(pygame.transform.rotozoom(pygame.image.load('portraits/text box/normal.png'),0,1),
+                           ['...','......'],
+                           50,(255,255,255),24,1,[0,5,9,24,7,8],10,(1,0))
+text_milk_nearby = create_text(pygame.transform.rotozoom(pygame.image.load('portraits/text box/emergencia.png'),0,1),
+                           ['ENTRA YA'],
+                           50,(255,255,255),24,0,[0,5,9,24,7,8],60,(1,0))
+
+
+
+
+
+#npcs
+mr_satan = create_the_npcs(satan_sprite_list,1,(850,400),(200,200),0.15,6,(32,32),30,300,300,(3,0))
+
+piccolo = create_the_npcs(piccolo_sprite_list,1,(850,400),(200,200),0.15,1,(32,32),30,300,300,(0,0))
+
+broly = create_the_npcs(broly_sprite_list,1,(850,400),(200,200),0.15,3,(32,32),30,300,300,(3,0))
+
+goku = create_the_npcs(goku_sprite_list,1,p1.s_rect,p1.s_rect,0.15,5,(32,32),30,300,300,(0,0))
+goku_log = create_the_npcs(goku_log1_sprite_list,1,p1.s_rect,p1.s_rect,0.15,5,(32,32),30,300,300,(0,0))
+
+maron = create_the_npcs(maron_sprite_list,1,p1.s_rect,p1.s_rect,0.15,5,(32,32),30,300,300,(0,0))
+gogeto = create_the_npcs(gogeto_sprite_list,1,p1.s_rect,p1.s_rect,0.15,5,(32,32),30,300,300,(0,0))
+vegito = create_the_npcs(vegito_sprite_list,1,p1.s_rect,p1.s_rect,0.15,7,(32,32),30,300,300,(0,0))
+trunks = create_the_npcs(trunks_sprite_list,1,p1.s_rect,p1.s_rect,0.15,7,(32,32),30,300,300,(0,0))
+
+luffy = create_the_npcs(luffy_sprite_list,1,p1.s_rect,p1.s_rect,0.15,5,(32,32),30,300,300,(0,0))
+#luffy['max_num_change'] = 2
+
+Npcs = [goku,goku_log,mr_satan,piccolo,broly,milk,bulma,maron,gogeto,vegito,luffy,trunks]
+
+avatar_main = create_the_npcs(goku_yardrat_sprite_list,1,p1.s_rect,p1.s_rect,0.15,5,(32,32),30,300,300,(0,0))
+
+avatar_free_batle = create_the_npcs(goku_sprite_list,1,p1.s_rect,p1.s_rect,0.15,5,(32,32),30,300,300,(0,0))
+clon_free_batle = create_the_npcs(goku_sprite_list,1,p1.s_rect,p1.s_rect,0.15,5,(32,32),30,300,300,(0,0))
+ki_blast = create_the_npcs(ki_sprite_list,1,p1.s_rect,p1.s_rect,0.15,15,(32,32),30,300,300,(0,0))
+
+avatar_training = create_the_npcs(goku_sprite_list,1,p1.s_rect,p1.s_rect,0.15,5,(32,32),30,300,300,(0,0))
+avatar_enemy = create_the_npcs(goku_sprite_list,1,(900,500),(50,50),0.15,2,(32,32),30,300,300,(0,0))
+#avatar_tournament =
+e_rect = piccolo_spritesheet.get_rect()
+"""colision en db lob"""
+def Collide(fighter,enemy,vel,distance,box_map,bool_reject,impulso):
+    hit_box = Hit_box([fighter['rect_list'][0][0],fighter['rect_list'][0][1],32,32], 
+                      [enemy['rect_list'][0][0],enemy['rect_list'][0][1],
+                       32,32],distance)
+    #hit_box_of_enem = Hit_box([pos_p2.x,pos_p2.y,32,32],[pos_p1.x,pos_p1.y,32,32],0)
+    #no col player
+    if bool_reject == False:
+        if hit_box[0] == True:
+            fighter['rect_list'][0][1] = num_follow(fighter['rect_list'][0][1],box_map[1]+box_map[3],vel)
+        if hit_box[1] == True:
+            fighter['rect_list'][0][1] = num_follow(fighter['rect_list'][0][1],box_map[1],vel)
+        if hit_box[2] == True:
+            fighter['rect_list'][0][0] = num_follow(fighter['rect_list'][0][0],box_map[0]+box_map[2],vel)
+        if hit_box[3] == True:
+            fighter['rect_list'][0][0] = num_follow(fighter['rect_list'][0][0],box_map[0],vel)
+    #col player
+    if bool_reject == True:
+        if hit_box[1] == True:
+            enemy['rect_list'][0][1] = num_follow(enemy['rect_list'][0][1],box_map[1]+box_map[3],impulso)
+        if hit_box[0] == True:
+            enemy['rect_list'][0][1] = num_follow(enemy['rect_list'][0][1],box_map[1],impulso)
+        if hit_box[3] == True:
+            enemy['rect_list'][0][0] = num_follow(enemy['rect_list'][0][0],box_map[0]+box_map[2],impulso)
+        if hit_box[2] == True:
+            enemy['rect_list'][0][0] = num_follow(enemy['rect_list'][0][0],box_map[0],impulso)
+    """if hit_box[0] == False and hit_box[1] == False and hit_box[2] == False and hit_box[3] == False:
+        Damage.cant = 0
+    if hit_box[0] == True or hit_box[1] == True or hit_box[2] == True or hit_box[3] == True:
+        Damage.cant = 100"""
+def Ultra_instinc(bool_dodge,fighter,enemy,distance,vel,box_map):
+    hit_box = Hit_box([fighter['rect_list'][0][0],fighter['rect_list'][0][1],32,32],
+                      [enemy['rect_list'][0][0],enemy['rect_list'][0][1],32,32],distance)
+    if bool_dodge == True:
+        index_for_angle(fighter,fighter['rect_list'][0],enemy['rect_list'][0])
+
+        if hit_box[1] == True:
+            fighter['rect_list'][0][1] = num_follow(fighter['rect_list'][0][1],box_map[1]+box_map[3],vel)
+        if hit_box[0] == True:
+            fighter['rect_list'][0][1] = num_follow(fighter['rect_list'][0][1],box_map[1],vel)
+        if hit_box[3] == True:
+            fighter['rect_list'][0][0] = num_follow(fighter['rect_list'][0][0],box_map[0]+box_map[2],vel)
+        if hit_box[2] == True:
+            fighter['rect_list'][0][0] = num_follow(fighter['rect_list'][0][0],box_map[0],vel)
+def domain_expansion(screen,pos_begin,dimentions,pos_intruder):
+    surf = pygame.Surface(dimentions)
+    surf.fill((255,0,0))
+    pos_zone = [pos_begin[0]-dimentions[0]/2,pos_begin[1]-dimentions[1]/2,dimentions[0],dimentions[1]]
+    #screen.blit(surf,pos_zone)
+    return Hover(pos_intruder,pos_zone)
+def Reiatsu(bool_reiatsu,bool_zone_active,avatar_dict,dicti,power,limits_zone_rect):
+    if bool_reiatsu == True:
+        if bool_zone_active == True:
+            #x
+            if dicti['rect_list'][0][0] < avatar_dict['rect_list'][0][0]:
+                dicti['rect_list'][0][0] = num_follow(dicti['rect_list'][0][0],limits_zone_rect[0],power)
+            if dicti['rect_list'][0][0] > avatar_dict['rect_list'][0][0]:
+                dicti['rect_list'][0][0] = num_follow(dicti['rect_list'][0][0],limits_zone_rect[2],power)
+            #y
+            if dicti['rect_list'][0][1] < avatar_dict['rect_list'][0][1]:
+                dicti['rect_list'][0][1] = num_follow(dicti['rect_list'][0][1],limits_zone_rect[1],power)
+            if dicti['rect_list'][0][1] > avatar_dict['rect_list'][0][1]:
+                dicti['rect_list'][0][1] = num_follow(dicti['rect_list'][0][1],limits_zone_rect[3],power)
+def Blue(bool_blue,dicti,avatar_dict,power):
+    if bool_blue == True:
+        #x
+        if dicti['rect_list'][0][0] < avatar_dict['rect_list'][0][0] or dicti['rect_list'][0][0] > avatar_dict['rect_list'][0][0]:
+            dicti['rect_list'][0][0] = num_follow(dicti['rect_list'][0][0],avatar_dict['rect_list'][0][0],power)
+        #y
+        if dicti['rect_list'][0][1] < avatar_dict['rect_list'][0][1] or  dicti['rect_list'][0][1] > avatar_dict['rect_list'][0][1]:
+            dicti['rect_list'][0][1] = num_follow(dicti['rect_list'][0][1],avatar_dict['rect_list'][0][1],power)
+def Rinegan(bool_rin,dict_avatar,dict_enemy):
+    if bool_rin == True:
+        print(dict_avatar['rect_list'][0])
+        distancia = (math.sqrt(((dict_enemy['rect_list'][0][0] - dict_avatar['rect_list'][0][0]) ** 2) + ((dict_enemy['rect_list'][0][1] - dict_avatar['rect_list'][0][1]) ** 2)))
+        #avatar
+        dict_avatar['rect_list'][0][0] = num_follow(dict_avatar['rect_list'][0][0],dict_enemy['rect_list'][0][0],distancia)
+        dict_avatar['rect_list'][0][1] = num_follow(dict_avatar['rect_list'][0][1],dict_enemy['rect_list'][0][1],distancia)
+        #enemy
+        dict_enemy['rect_list'][0][0] = num_follow(dict_enemy['rect_list'][0][0],dict_avatar['rect_list'][0][0],distancia)
+        dict_enemy['rect_list'][0][1] = num_follow(dict_enemy['rect_list'][0][1],dict_avatar['rect_list'][0][1],distancia)
+def Shunpo(Dict_avatar,bool_shunpo,Dict_aim):
+    distancia = (math.sqrt(((Dict_aim['rect_list'][0][0] - Dict_avatar['rect_list'][0][0]) ** 2) + ((Dict_aim['rect_list'][0][1] - Dict_avatar['rect_list'][0][1]) ** 2)))
+    print(distancia)
+    if bool_shunpo == True:
+        Dict_avatar['rect_list'][0][0] = num_follow(Dict_avatar['rect_list'][0][0],Dict_aim['rect_list'][0][0],distancia)
+        Dict_avatar['rect_list'][0][1] = num_follow(Dict_avatar['rect_list'][0][1],Dict_aim['rect_list'][0][1],distancia)
+
+def collide_2d_fighter(fighter,enemy,vel,distance):
+    hit_box = Hit_box([fighter['rect_list'][0][0],fighter['rect_list'][0][1],32,32],
+                      [enemy['rect_list'][0][0],enemy['rect_list'][0][1],
+                       32,32],5)
+    #hit_box_of_enem = Hit_box([pos_p2.x,pos_p2.y,32,32],[pos_p1.x,pos_p1.y,32,32],0)
+    #col player
+    if hit_box[2] == True:
+        fighter['rect_list'][0][0] = num_follow(fighter['rect_list'][0][0],1000,vel)
+    if hit_box[3] == True:
+        fighter['rect_list'][0][0] = num_follow(fighter['rect_list'][0][0],0,vel)
+    #no col player
+    """if hit_box[0] == False and hit_box[1] == False and hit_box[2] == False and hit_box[3] == False:
+        Damage.cant = 0
+    if hit_box[0] == True or hit_box[1] == True or hit_box[2] == True or hit_box[3] == True:
+        Damage.cant = 100"""
+"""personajes para un 2d fighter"""
+saitama_hero_spritesheet = pygame.image.load('personajes estilo sf/saitama.png')
+saitama_scale = (35,70)
+saitama_scale_walk = (39,65)
+saitama_scale_girar = (40,71)
+#saitama_background = obtain_color_in_img(pygame.image.load('color_database/verde/symbolism-of-green.jpg'))
+saitama_2d_fighter = create_the_npcs([return_spritesheet(saitama_hero_spritesheet,[39,8],saitama_scale_walk,8,False,True,(False,False),1.5),
+                         return_spritesheet(saitama_hero_spritesheet,[39,8],saitama_scale_walk,8,False,True,(False,False),1.5),
+                         return_spritesheet(saitama_hero_spritesheet,[0,83],saitama_scale_walk,8,False,True,(True,False),1.5),
+                         return_spritesheet(saitama_hero_spritesheet,[0,83],saitama_scale_walk,8,False,True,(False,False),1.5),
+
+                                      return_spritesheet(saitama_hero_spritesheet, [209, 2115], saitama_scale, 8, False,
+                                                         True, (False, False), 1.5),
+                                      return_spritesheet(saitama_hero_spritesheet, [209, 2115], saitama_scale, 8, False,
+                                                         True, (False, False), 1.5),
+                                      return_spritesheet(saitama_hero_spritesheet, [0, 1161], saitama_scale_girar, 8, False,
+                                                         True, (True, False), 1.5),
+                                      return_spritesheet(saitama_hero_spritesheet, [0, 1161], saitama_scale_girar, 8, False,
+                                                         True, (False, False), 1.5)
+                                      ],
+                                     1,(200,400),(4,4),0.10,5,(23,63),50,300,320,(0,0))
+saitama_2d_fighter['max_num_change'] = 8
+
+luffy_spritesheet = pygame.image.load('personajes estilo sf/luffy.png').convert_alpha()
+luffy_scale = (50,50)
+luffy_scale_walk = (54,50)
+luffy_scale_hop = (49,60)
+luffy_scale_especial = (38,50)
+#luffy_background = obtain_color_in_img(pygame.image.load('personajes estilo sf/backgrounds/luffy.png'))
+luffy_2d_fighter = create_the_npcs([return_spritesheet(luffy_spritesheet,[24,563],luffy_scale_hop,8,False,True,(False,False),1.5),
+                         return_spritesheet(luffy_spritesheet,[62,875],luffy_scale_hop,8,False,False,(False,False),1.5),
+                         return_spritesheet(luffy_spritesheet,[0,287],luffy_scale_walk,8,False,True,(False,False),1.5),
+                         return_spritesheet(luffy_spritesheet,[0,287],luffy_scale_walk,8,False,True,(True,False),1.5),
+
+                                    return_spritesheet(luffy_spritesheet, [78, 4862], luffy_scale_especial, 8, False, True,
+                                                       (False, False), 1.5),
+                                    return_spritesheet(luffy_spritesheet, [78, 4862], luffy_scale_especial, 8, False, True,
+                                                       (False, False), 1.5),
+                                    return_spritesheet(luffy_spritesheet, [78, 4862], luffy_scale_especial, 8, False, True,
+                                                       (True, False), 1.5),
+                                    return_spritesheet(luffy_spritesheet, [78, 4862], luffy_scale_especial, 8, False, True,
+                                                       (False, False), 1.5)
+                                    ],
+                                     1,(200,400),(4,4),0.15,2,(23,63),50,300,320,(0,0))
+luffy_2d_fighter['max_num_change'] = 8
+
+#goku
+goku_supersonic_spritesheet = pygame.image.load('personajes estilo sf\Game Boy Advance - Dragon Ball Z Supersonic Warriors - Goku.png')
+goku_supersonic_scale = (61,70)
+goku_supersonic_scale_move = (94,60)
+goku_supersonic_sprite_list = [
+    return_spritesheet(goku_supersonic_spritesheet,[0,1632],goku_supersonic_scale_move,4,False,True,(False,False),1.5),
+    return_spritesheet(goku_supersonic_spritesheet,[0,1632],goku_supersonic_scale_move,4,False,False,(False,False),1.5),
+    return_spritesheet(goku_supersonic_spritesheet,[0,1632],goku_supersonic_scale_move,4,False,True,(True,False),1.5),
+    return_spritesheet(goku_supersonic_spritesheet,[0,1632],goku_supersonic_scale_move,4,False,True,(False,False),1.5),
+
+    return_spritesheet(goku_supersonic_spritesheet,[88,1020],goku_supersonic_scale,4,False,True,(False,False),1.5),
+    return_spritesheet(goku_supersonic_spritesheet,[88,1020],goku_supersonic_scale,4,False,False,(False,False),1.5),
+    return_spritesheet(goku_supersonic_spritesheet,[88,1020],goku_supersonic_scale,4,False,True,(True,False),1.5),
+    return_spritesheet(goku_supersonic_spritesheet,[88,1020],goku_supersonic_scale,4,False,True,(False,False),1.5),
+]
+goku_supersonic_warriors = create_the_npcs(goku_supersonic_sprite_list,1,(200,400),(100,200),0.20,5,(23,63),50,300,300,(0,0))
+
+
+"""personajes"""
+g = get_locs(3,0,0,(True,False),(20,30))
+the_npc_0 = create_the_npcs(goku_sprite_list,5,(0,0),(500,670),2,5,(32,32),40,200,300,(0,0))
+
+"""worlds"""
+worlds = {}
+"""valores guardados"""
+#fonts
+abc = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'ñ', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+font_custom = [pygame.image.load('fonts/A-B-C-D-E-F-G-H-I-J-K-L-.png').convert_alpha()]
+font_1 = return_spritesheet(font_custom[0],[7,0],(59,60),25,False,True,(False,False),1)
+palabra_list = ['d','b']
+posicion_de_las_letras = get_locs(5,500,0,(False,True),(32,32))
+maximo = encontrar_maximo_de_elementos(palabra_list)
+posiciones_b = [encontrar_posiciones(palabra_list[i],abc)for i in range(0,maximo)]
+#buttons press time
+button_press = [pygame.image.load('botones/press_1.png'),pygame.image.load('botones/press_2.png')]
+button_no_press = pygame.image.load('botones/no_press.png')
+#text
+texto_normal = create_text(pygame.transform.rotozoom(pygame.image.load('multiverse/cuadros de texto/cuadro_1.png'),0,0.1),
+                           ['Ora','ora','inutil','bastardo'],
+                           50,(0,0,0),24,3,[0,5,9,24,7,8],60,(0,0))
+#zones
+tienda_de_antiguedades = {'id':(2,0),'place_img':pygame.image.load('places/restaurant/159967 (1).png'),'place_pos':[850,460],'place_pos_door':pygame.Rect([950,630],(40,60)),
+                          'door_color_detect':(0,255,0),
+                          'place_mask_collision':pygame.image.load('places/restaurant/mask.png'),'color_collision':(255,0,0),
+                          'active':False,'num_press':0,'max_num_press':200}
+tienda_electrónica = {'id':(2,0),'place_img':pygame.image.load('places/tienda electronica/159966.png'),'place_pos':[380,-20],'place_pos_door':pygame.Rect([433,206],(40,60)),
+                          'door_color_detect':(0,255,0),
+                          'place_mask_collision':pygame.image.load('places/restaurant/mask.png'),'color_collision':(255,0,0),
+                          'active':False,'num_press':0,'max_num_press':200}
+bulma_room = {'id':(1,0),'place_img':pygame.image.load('places/capsule corp/capsule_corp_bulma_room.png'),'place_pos':[140,160],'place_pos_door':pygame.Rect([270,440],(40,30)),
+                          'door_color_detect':(0,255,0),
+                          'place_mask_collision':pygame.image.load('places/restaurant/mask.png'),'color_collision':(255,0,0),
+                          'active':False,'num_press':0,'max_num_press':200}
+#skills
+za_warudo_skill = {'img':None,'img_pos':(0,0),'portada':pygame.transform.scale(pygame.image.load('portraits/stands/THE-WORLD_2.png'),(150,30)),
+                   'portada_pos':(20,120),'damage':200,'increase':5,'time':300,'max_time':300,'time_pos':[20,200],
+                   'vel_charge':1,'delay_damage':300,'function':za_warudo,'bool_atack':False}
+crazy_diamond = {'img':None,'img_pos':(0,0),'portada':pygame.transform.rotozoom(pygame.image.load('portraits/stands/THE-WORLD_2.png'),0,0.5),
+                 'portada_pos':(20,120),'damage':200,'increase':5,'time':300,'max_time':300,'time_pos':[20,200],
+                   'vel_charge':1,'delay_damage':300,'function':za_warudo,'bool_atack':False}
+yellow_temperance = {'img':None,'img_pos':(0,0),'portada':pygame.transform.rotozoom(pygame.image.load('portraits/stands/yellow-temperance.png'),0,0.5),
+                     'portada_pos':(20,120),'damage':200,'increase':5,'time':300,'max_time':300,'time_pos':[20,200],
+                   'vel_charge':1,'delay_damage':300,'function':yellow_temperance,'bool_atack':False}
+One_punch = {'img':None,'img_pos':(0,0),'portada':pygame.transform.rotozoom(pygame.image.load('portraits/stands/ONE-PUNCH-MAN.png'),0,0.5),
+                     'portada_pos':(20,120),'damage':200,'increase':5,'time':300,'max_time':3000000,'time_pos':[20,200],
+                   'vel_charge':100,'delay_damage':300,'function':one_punch,'bool_atack':False}
+
+skills = {'skills':[za_warudo_skill,yellow_temperance,One_punch],'index':0,'max_index':2}
+#swords
 nozarashi = {'img':pygame.transform.rotozoom(pygame.image.load('multiverse/objects/zaraki_kenpachis_zanpakuto.png').convert_alpha(),0,0.2),'vel':20,
              'distance':30,'min_distance':30,'max_distance':300}
-#nozarashi_shikai =
-def blit_sword(pantalla,dict,pos_per,pos_enem,index_per,bool_atack):
-    print(index_per)
-    x_dist = pos_enem[0] - pos_per[0]
-    y_dist = -(pos_enem[1] - pos_per[1])  # -ve because pygame y coordinates increase down the screen
-    angle = math.degrees(math.atan2(y_dist, x_dist))
-    if bool_atack == True:
-        if dict['distance'] < dict['max_distance']:
-            dict['distance'] += dict['vel']
-    if bool_atack == False:
-        dict['distance'] = dict['min_distance']
-
-    if index_per == 0 or index_per == 4 or index_per == 8:
-        pantalla.blit(pygame.transform.rotate(dict['img'],angle),(pos_per[0],pos_per[1] - dict['distance']))
-    if index_per == 1 or index_per == 5 or index_per == 9:
-        pantalla.blit(pygame.transform.rotate(dict['img'],angle),(pos_per[0],pos_per[1] + dict['distance']))
-    if index_per == 2 or index_per == 6 or index_per == 10:
-        pantalla.blit(pygame.transform.rotate(dict['img'],angle),(pos_per[0] - dict['distance'],pos_per[1]))
-    if index_per == 3 or index_per == 7 or index_per == 11:
-        pantalla.blit(pygame.transform.rotate(dict['img'],angle),(pos_per[0] + dict['distance'],pos_per[1]))
-"""efectos"""
+#efectos
 tamaño_effect = 0.2
 cantidad_getsuga_tenshou = 3
 effect_Tsukiyubi = {'surf_list':[charge_img('multiverse/effects/getsuga tenshou/getsuga tenshou_',3,'.png',tamaño_effect,90),
@@ -1301,307 +1514,86 @@ effect_Tsukiyubi = {'surf_list':[charge_img('multiverse/effects/getsuga tenshou/
                               'max_frames':1,'alpha':0,'vel':30,
                     'distance':30,'min_distance':50,'max_distance':300,
                     }
+#Sounds
+Sounds = ["AUDIOS DE P78\A.wav","AUDIOS DE P78\B.wav","AUDIOS DE P78\K.wav"]
+palabras_sound = ['a','b','c']
+Sound_A = {'palabra':palabras_sound,'max_palabra':encontrar_maximo_de_elementos(Sounds)-1,'vel':0.03,'index':0}
+
+clock_1 = {'num':0,'max':60,'vel':1,'time_perfect_range':[10,20]}
+def the_clock(clock):
+    print(clock['num'])
+    if clock['num'] < clock['max']:
+        clock['num'] += clock['vel']
+    if clock['num'] == clock['max']:
+        clock['num'] = 0
+
+    if clock['num'] in range(clock['time_perfect_range'][0],clock['time_perfect_range'][1]):
+        return True
+    if clock['num'] != clock['time_perfect_range']:
+        return False
+def Play_sound(bool_play,dict):
+    
+    if bool_play == True:
+        print(palabras_sound[round(dict['index'])])
+        indice = encontrar_posiciones(palabras_sound[round(dict['index'])],abc)[0]
+        Sounds[indice].set_volume(0.5)
+        # get a channel to play the sound
+        channel = pygame.mixer.find_channel(True) # should always find a channel
+        channel.play(Sounds[indice])
+        if isinstance(dict['index'], int):
+            Sounds[indice].play()
+    if bool_play == False:
+        dict['index'] = 0
+"""cinematic"""  
+"""Aura"""
+Aura_kaioken_sprite = pygame.image.load('auras/ki_charge_spritesheet_kaioken.png').convert_alpha()
+Aura_ui_sprite = pygame.image.load('auras/ki_charge_spritesheet_ui.png').convert_alpha()
+video_Aura_kaioken = {'video_frames':return_spritesheet(Aura_kaioken_sprite,[0,0],[49,35],3,False,True,(False,False),2),'max_frames':2,
+                   'sound':'videos/sonido/bishoujo_ghostface.ogg','vel':0.6,'indice':0,'pos':(0,0),
+                   'bool_pause':False
+                   }
+video_Aura_ui = {'video_frames':return_spritesheet(Aura_ui_sprite,[0,0],[49,35],3,False,True,(False,False),2),'max_frames':2,
+                   'sound':'videos/sonido/bishoujo_ghostface.ogg','vel':0.6,'indice':0,'pos':(0,0),
+                   'bool_pause':False
+                   }
+def cinematic_1(screen,npc_1,npc_2,distance,):
+    screen.fill((255,0,0))
+    print(npc_2['rect_list'][0])
+    print(npc_1['rect_list'][0])
+    move_npc_for_enemy(screen,npc_1,npc_2,distance,True,(0,0),True,True,npc_2['rect_list'][0])
+    move_npc_for_enemy(screen,npc_2,npc_1,distance,True,(0,0),True,True,npc_1['rect_list'][0])
+    Collide(npc_1,npc_2,5,0,[0,0,1280,720],True,random.choice([30,60,90]))
+    Collide(npc_2,npc_1,5,0,[0,0,1280,720],True,random.choice([20,40,60]))
+    if random.choice([False,True]) == True:
+        npc_2['rect_list'][0][0] = num_follow(npc_2['rect_list'][0][0],random.randint(0,1280),random.randint(100,200))
+        npc_2['rect_list'][0][1] = num_follow(npc_2['rect_list'][0][1],random.randint(0,1280),random.randint(100,200))
+    if random.choice([False,True]) == True:
+        npc_1['rect_list'][0][0] = num_follow(npc_1['rect_list'][0][0],random.randint(0,1280),random.randint(100,200))
+        npc_1['rect_list'][0][1] = num_follow(npc_1['rect_list'][0][1],random.randint(0,1280),random.randint(100,200))
+    if random.choice([False,True]) == True:
+        npc_1['rect_list'][0][0] = num_follow(npc_1['rect_list'][0][0],npc_2['rect_list'][0][0],random.randint(100,200))
+        npc_1['rect_list'][0][1] = num_follow(npc_1['rect_list'][0][1],npc_2['rect_list'][0][1],random.randint(100,200))
+        npc_2['rect_list'][0][0] = num_follow(npc_2['rect_list'][0][0],npc_1['rect_list'][0][0],random.randint(100,200))
+        npc_2['rect_list'][0][1] = num_follow(npc_2['rect_list'][0][1],npc_1['rect_list'][0][0],random.randint(100,200))
 
 
-print(effect_Tsukiyubi['surf_list'][0])
-def rotate_surf(surf,cantidad,angulo,scale):
-    list_rotate = []
-    dicti = {'surf_list':list_rotate,'distance':30,'min_distance':5,'max_distance':300,'vel':5,'alpha':0}
-    angle = angulo
-    for i in range(1,cantidad+1):
-        list_rotate.append(pygame.transform.rotozoom(surf,angle,scale))
-        angle += angulo
-    return dicti
-getsuga = rotate_surf(pygame.image.load('multiverse/effects/getsuga tenshou/getsuga tenshou_2.png').convert_alpha(),13,180,0.2)
-def blit_effect(pantalla,bool_atack,index_per,pos_per,dict):
-    ubis = [(pos_per[0],pos_per[1] - dict['distance']),(pos_per[0],pos_per[1] + dict['distance']),
-            (pos_per[0] - dict['distance'],pos_per[1]),(pos_per[0] + dict['distance'],pos_per[1]),
+npc_simulation_1 = create_the_npcs(gogeto_sprite_list,1,(200,400),(4,4),0.10,5,(23,63),50,300,320,(0,0))
+npc_simulation_2 = create_the_npcs(vegito_sprite_list,1,(200,400),(4,4),0.10,7,(23,63),50,300,320,(0,0))
 
-            (pos_per[0], pos_per[1] - dict['distance']), (pos_per[0], pos_per[1] + dict['distance']),
-            (pos_per[0] - dict['distance'], pos_per[1]), (pos_per[0] + dict['distance'], pos_per[1]),
+"""items"""
+dragonballs_spritesheet = pygame.image.load('item/53872.png')
+dragonballs = return_spritesheet(dragonballs_spritesheet,[42,72],(17,15),7,False,True,(False,False),1.5)
 
-            (pos_per[0], pos_per[1] - dict['distance']), (pos_per[0], pos_per[1] + dict['distance']),
-            (pos_per[0] - dict['distance'], pos_per[1]), (pos_per[0] + dict['distance'], pos_per[1]),
-            ]
-
-    index = random.randint(0,dict['max_frames'])
-    #index = 0
+def create_items(screen,img_objs,pos,xp_for_index,amount_to_index,max):
+    index = 0
+    if round(xp_for_index/amount_to_index) < max:
+        index = round(xp_for_index/amount_to_index)
+    if round(xp_for_index/amount_to_index) >= max:
+        index = max 
     print(index)
-    if bool_atack == True:
-        if dict['distance'] < dict['max_distance']:
-            dict['distance'] += dict['vel']
-        if dict['distance'] >= dict['max_distance']:
-            dict['distance'] = dict['min_distance']
-        dict['alpha'] = 250
-    if bool_atack == False:
-        dict['alpha'] = 0
-        dict['distance'] = dict['min_distance']
-    dict['surf_list'][index_per][index].set_alpha(dict['alpha'])
-    pantalla.blit(dict['surf_list'][index_per][index],ubis[index_per])
+    screen.blit(img_objs[index],pos)
 
-def press_button_time(screen,list_num,max_num_random,surf_normal,surf_press_list,pos):
-    num = random.randint(0,max_num_random)
-    rand = random.randint(0,1)
-    if num in list_num:
-        screen.blit(surf_press_list[rand],pos)
-    else:
-        screen.blit(surf_normal, pos)
-button_press = [pygame.image.load('botones/press_1.png'),pygame.image.load('botones/press_2.png')]
-button_no_press = pygame.image.load('botones/no_press.png')
-def Aura(list,color,cantidad,transparencia):
-
-    masks = [pygame.mask.from_surface(list[i]) for i in range(0, cantidad + 1)]
-    #mask = pygame.mask.from_surface(to_kaioken[0][0])
-    #new_mask = mask.to_surface()
-    new_masks = [masks[i].to_surface() for i in range(0, cantidad + 1)]
-    #masks_reescale = []
-    #new_mask.set_colorkey((0,0,0))
-    for i in range(0, cantidad + 1):
-        new_masks[i].set_colorkey((0,0,0))
-    for i in range(0, cantidad + 1):
-        for x in range(list[0].get_width()):
-            for y in range(list[0].get_height()):
-                if new_masks[i].get_at((x,y)) == (255,255,255):
-                    new_masks[i].set_at((x,y),color)
-                    #masks_reescale.append(new_masks[i])
-    for i in range(0, cantidad + 1):
-        new_masks[i].set_alpha(transparencia)
-        #masks_reescale[i].set_alpha(transparencia)
-    return new_masks
-#to_kaioken = [return_spritesheet(list_sprite[i], [1, 68], (17, 34), 5, False, True, (False, False), scala_sprites) for i in range(0, cantidad_de_imgs + 1)]
-alpha_aura = 50
-color_aura_move = (255,140,0)
-color_aura_punch = (255,99,71)
-color_aura_kek = (173,16,16)
-aura_ej = Aura(up_sprite_list[index_sprite],color_aura_move,4,alpha_aura)
-aura_down = Aura(prob[index_sprite],color_aura_move,4,alpha_aura)
-aura_left = Aura(left_sprite_list[index_sprite],color_aura_move,4,alpha_aura)
-aura_right = Aura(right_sprite_list[index_sprite],color_aura_move,4,alpha_aura)
-
-
-aura_punch_up_1 = Aura(up_sprite_punch_1,color_aura_punch,4,50)
-aura_punch_down_1 = Aura(down_sprite_punch_1,color_aura_punch,4,50)
-aura_punch_left_1 = Aura(left_sprite_punch_1,color_aura_punch,4,50)
-aura_punch_right_1 = Aura(right_sprite_punch_1,color_aura_punch,4,50)
-
-aura_punch_up_2 = Aura(up_sprite_punch_2,color_aura_punch,4,50)
-aura_punch_down_2 = Aura(down_sprite_punch_2,color_aura_punch,4,50)
-aura_punch_left_2 = Aura(left_sprite_punch_2,color_aura_punch,4,50)
-aura_punch_right_2 = Aura(right_sprite_punch_2,color_aura_punch,4,50)
-
-aura_kekkai_up = Aura(kekkai_up_sprite,color_aura_kek,4,50)
-aura_kekkai_down = Aura(kekkai_down_sprite,color_aura_kek,4,50)
-aura_kekkai_left = Aura(kekkai_left_sprite,color_aura_kek,4,50)
-aura_kekkai_right = Aura(kekkai_right_sprite,color_aura_kek,4,50)
-
-def perfect_outline(self,display,img, loc,grosor):
-    mask = pygame.mask.from_surface(img)
-    mask_surf = mask.to_surface()
-    mask_surf.set_colorkey((0, 0, 0))
-    display.blit(mask_surf, (loc[0] - grosor, loc[1]))
-    display.blit(mask_surf, (loc[0] + grosor, loc[1]))
-    display.blit(mask_surf, (loc[0], loc[1] - grosor))
-    display.blit(mask_surf, (loc[0], loc[1] + grosor))
-
-def blit_aura(display,img,loc,grosor):
-    #display.blit(img, (loc[0] - grosor, loc[1] - grosor))
-    display.blit(img, (loc[0] - grosor, loc[1]))
-    display.blit(img, (loc[0] + grosor, loc[1]))
-    display.blit(img, (loc[0], loc[1] - grosor))
-    display.blit(img, (loc[0], loc[1] + grosor))
-"""collision mask"""
-def Aura_only(img,color,transparencia):
-    mask = pygame.mask.from_surface(img)
-    new_mask = mask.to_surface()
-    new_mask.set_colorkey((0,0,0))
-    for x in range(img.get_width()):
-        for y in range(img.get_height()):
-            if new_mask.get_at((x,y)) == (255,255,255):
-                new_mask.set_at((x,y),color)
-    new_mask.set_alpha(transparencia)
-    return new_mask
-def save_surf_and_pos(surface,x,y,bool_collision_mask):
-    surf_and_pos = {'img':surface,'x':x,'y':y,'collision_mask':None,
-                    'alpha_img':250,
-                    'color_mask':(255,0,0),'alpha_mask':200}
-    if bool_collision_mask == True:
-        surf_and_pos['collision_mask'] = Aura_only(surface,surf_and_pos['color_mask'],surf_and_pos['alpha_mask'])
-    #surf_and_pos = [surface,x,y]
-    #if bool_collision_mask == True:
-        #surf_and_pos.append(Aura(surface,(255,250,250),200))
-    return surf_and_pos
-
-
-"""asignar"""
-p1 = player
-"""surfaces"""
-#move = [up_sprite,down_sprite,left_sprite,right_sprite]#"up"
-punch = [up_sprite_punch_1,down_sprite_punch_1,left_sprite_punch_1,right_sprite_punch_1]
-kekkai = [kekkai_up_sprite,kekkai_down_sprite,kekkai_left_sprite,kekkai_right_sprite]
-"""functions"""
-
-def distancia_plana_simple(pos1,pos2):
-
-
-    d = math.sqrt((pos1[0] - pos2[0])*2 + (pos1[1] - pos2[1])*2)
-    return d
-
-
-def avistamiento(self, a, b, distancia):
-    if (math.sqrt(((b[0] - a[0]) ** 2) + ((b[1] - a[1]) ** 2))) < distancia:
-        return True
-    else:
-        return False
-def anti_avistamiento(self,a, b, distancia):
-    if (math.sqrt(((b.x - a.x) ** 2) + ((b.y - a.y) ** 2))) > distancia:
-        return True
-    else:
-        return False
-def transport(self,pos,to):
-    if p1.hover(self,pos,20):
-        p1.s_rect.x = to
-
-"""change caracter"""
-"""botones"""
-ubi_boton_atras = (800,500)
-scale_boton = (60,60)
-boton_atras = pygame.Surface(scale_boton)
-color_boton_atras = (0,0,0)
-"""listas"""
-
-#mr satan
-
-"""imagen de seleccion"""
-cuadro_selector_p1 = pygame.Surface((100,100))
-color_cuadro_selector = (0,0,0)
-cuadro_selector_p1_pos = (0,0)
-goku_selec = pygame.image.load('portraits/goku.png')
-broly_selec = pygame.image.load('portraits/broly.png')
-vegeta_selec = pygame.image.load('portraits/vegeta.png')
-
-
-
-
-"""lugares"""
-indice_lugares = 0
-lugares = [pygame.image.load('lugares/mini/isla_kame_mini.png').convert(),pygame.image.load('lugares/mini/bosque_mini.png').convert(),pygame.image.load('lugares/mini/grand_kai_tournament_mini.png').convert(),pygame.image.load('lugares/mini/mini_fondo.jpg').convert()]
-
-"""def"""
-
-
-
-def antihover(ancho,alto,pos,surface_pos):
-    if surface_pos.x < pos[0] or surface_pos.x > pos[0] + ancho or surface_pos.y < pos[1] or surface_pos.y > pos[1] + alto:
-        return True
-    else:
-        return False
-def hover(self,surf_pos,pos,scale):
-    if surf_pos[0] > pos[0] and surf_pos[0] < pos[0] + scale[0] and surf_pos[1] > pos[1] and surf_pos[1] < pos[1] + scale[1]:
-        return True
-    else:
-        return False
-
-
-
-def puente(self,entrada,door_scale,salida,vel_transition,surf_trans):
-    if hover(self,self.s_rect,entrada,door_scale):
-        dis = distancia_plana_simple(entrada,salida)
-        if avistamiento(self,self.s_rect,salida,dis):
-            screen.fill(surf_trans)
-
-
-def string_blit(text,pos,scale,color):
-    fuente_uni = pygame.font.Font(None, scale)
-    mensaje_uni = fuente_uni.render(text, True, color)
-    screen.blit(mensaje_uni, pos)
-indice_west_city = 1
-img = ['grand_kai_tournament_2.png','lugares/isla_kame.png']
-gta = pygame.image.load(img[0]).convert()
-gta2 = pygame.image.load(img[1]).convert()
-"""imagenes y colision"""
-
-west_city_surf_1 = [return_spritesheet(pygame.image.load('map.png').convert(),[0,0],(1280,720),2,False,True,(False,False),1),
-                    return_spritesheet(pygame.image.load('map.png').convert(),[0,720],(1280,720),2,False,True,(False,False),1),
-                    return_spritesheet(pygame.image.load('map.png').convert(),[0,1440],(1280,720),2,False,True,(False,False),1)]
-
-west_city_surf_2 = [return_spritesheet(pygame.image.load('map_copy.png').convert(),[0,0],(1280,720),2,False,True,(False,False),1),
-                    return_spritesheet(pygame.image.load('map_copy.png').convert(),[0,720],(1280,720),2,False,True,(False,False),1),
-                    return_spritesheet(pygame.image.load('map_copy.png').convert(),[0,1440],(1280,720),2,False,True,(False,False),1)]
-
-west_city_surf_3 = [return_spritesheet(pygame.image.load('map_copy_transparent_2.png').convert_alpha(),[0,0],(1280,720),2,False,True,(False,False),1),
-                    return_spritesheet(pygame.image.load('map_copy_transparent_2.png').convert_alpha(),[0,720],(1280,720),2,False,True,(False,False),1),
-                    return_spritesheet(pygame.image.load('map_copy_transparent_2.png').convert_alpha(),[0,1440],(1280,720),2,False,True,(False,False),1)]
-west_city = {'surf_normal':west_city_surf_1,'index_x':0,'index_y':0,'max_index_x':1,'max_index_y':2,
-             'surf_collide':west_city_surf_2,'surf_alpha':west_city_surf_3}
-capsule_corp = {'surf_normal':west_city_surf_1,'index_x':0,'index_y':0,'max_index_x':1,'max_index_y':2,
-             'surf_collide':west_city_surf_2,'surf_alpha':west_city_surf_3}
-
-def blit_map(dict):
-    print('map')
-world_map = {'maps':[west_city,capsule_corp],'index':0,'max_index':1}
-
-
-"""definir algo"""
-p1.punch_speed_multiplier = 5
-p1.s_rect.x = 400
-p1.s_rect.y = 300
-enem.e_rect.x = 800
-enem.e_rect.y = 300
-
-
-map_activates = 'training'
-contador_de_salida = 0
-#map
-mapita = [pygame.image.load('lugares/isla_kame.png').convert(),pygame.image.load('lugares/bosque.png').convert(),pygame.image.load('lugares/grand_kai_tournament_2.png').convert(),pygame.image.load('lugares/fondo.jpg').convert()]
-"""portadas"""
-portraits = [pygame.image.load('portraits/goku.png').convert(),pygame.image.load('portraits/goku_ssg.png').convert(),
-               pygame.image.load('portraits/goku_ui.png').convert(),pygame.image.load('portraits/vegeta.png').convert(),
-               pygame.image.load('portraits/trunks.png').convert(),pygame.image.load('portraits/piccoro.png').convert(),
-             pygame.image.load('portraits/dante.png').convert(),pygame.transform.rotozoom(pygame.image.load('portraits/saitama.png').convert(),0,0.2)]
-
-
-portrait_modos = [pygame.image.load('mode_titles/training.png').convert_alpha(),pygame.image.load('mode_titles/History.png').convert_alpha(),pygame.image.load('mode_titles/Tournament.png').convert_alpha(),
-                  pygame.image.load('mode_titles/Free-battle.png').convert_alpha()]
-ind_mode = 0
-modos_string = ['training','history','tournament','free_battle']
-"""video"""
-
-def blit_video(screen,dict):
-    print(dict['indice'])
-    if dict['bool_pause'] == False:
-        if dict['indice'] < dict['max_frames']:
-            dict['indice'] += dict['vel']
-    if dict['indice'] > dict['max_frames']:
-        #dict['bool_pause'] = True
-        dict['indice'] = 0
-    screen.blit(dict['video_frames'][round(dict['indice'])],dict['pos'])
-video_ghostface = {'video_frames':charge_img('videos/frames/bishoujo_ghostface/Video1-Frame',5,'.jpg',0.5 ,0),'max_frames':5000,
-                   'sound':pygame.mixer.music.load('videos/sonido/bishoujo_ghostface.ogg'),'vel':0.8,'indice':0,'pos':(0,0),
-                   'bool_pause':False,'restart':False
-                   }
-video_bleach = {'video_frames':charge_img('videos/frames/ichigo vs kenpachi/Video1-Frame',1,'.jpg',0.5,0),'max_frames':999,
-                   'sound':pygame.mixer.music.load('videos/sonido/bishoujo_ghostface.ogg'),'vel':0.8,'indice':0,'pos':(0,0),
-                   'bool_pause':False
-                   }
-video_goku_sad = {'video_frames':charge_img('videos/frames/goku sad/Video1-Frame',1,'.jpg',5,0),'max_frames':90,
-                   'sound':pygame.mixer.music.load('videos/sonido/bishoujo_ghostface.ogg'),'vel':0.8,'indice':0,'pos':(0,0),
-                   'bool_pause':False
-                   }
-video_saitama_meme = {'video_frames':charge_img('videos/frames/saitama achicado/Video1-Frame',1,'.jpg',0.5,0),'max_frames':130,
-                   'sound':pygame.mixer.music.load('videos/sonido/bishoujo_ghostface.ogg'),'vel':1.5,'indice':0,'pos':(0,0),
-                   'bool_pause':False
-                   }
-video_dante_dr_fauss = {'video_frames':charge_img('videos/frames/dante dr_fauss/Video1-Frame',1,'.jpg',0.5,0),'max_frames':56,
-                   'sound':pygame.mixer.music.load('videos/sonido/bishoujo_ghostface.ogg'),'vel':0.8,'indice':0,'pos':(0,0),
-                   'bool_pause':False
-                   }
-videos = [video_ghostface,video_bleach,video_goku_sad,
-          video_saitama_meme,video_dante_dr_fauss]
-index_video = 0
-vid = videos[index_video]
-
-"""botones"""
-#funciones
+#botones
 vel_ind = 0.3
 def sumar_indice_lugares():
     global indice_lugares
@@ -1613,7 +1605,7 @@ def restar_indice_lugares():
         indice_lugares -= vel_ind
 def suma_index_sprite():
     global index_sprite
-    if index_sprite < 7:
+    if index_sprite < encontrar_maximo_de_elementos(list_all_sprites) - 1:
         index_sprite += vel_ind
 def resta_index_sprites():
     global index_sprite
@@ -1625,22 +1617,28 @@ def resta_index_sprites_enem():
         index_sprite_enem -= vel_ind
 def suma_index_sprite_enem():
     global index_sprite_enem
-    if index_sprite_enem < 7:
+    if index_sprite_enem < encontrar_maximo_de_elementos(list_all_sprites) - 1:
         index_sprite_enem += vel_ind
+
+def sum_characters():
+    global index_character 
+    if index_character < encontrar_maximo_de_elementos(characters) - 1:
+        index_character += vel_ind
+def res_characters():
+    global index_character 
+    if index_character > - 1:
+        index_character -= vel_ind
 
 def sum_index_mode():
     global ind_mode
-    if ind_mode < 3:
+    if ind_mode < 6:
         ind_mode += vel_ind
 def res_index_mode():
     global ind_mode
     if ind_mode > -1:
         ind_mode -= vel_ind
 
-def pause_sound_and_video():
-    vid['bool_pause'] = True
-def despause_sound_and_video():
-    vid['bool_pause'] = False
+
 
 def sum_index_pantalla():
     global index_pantalla
@@ -1657,273 +1655,291 @@ def res_skills_index():
 def sum_skills_index():
     if skills['index'] < skills['max_index']:
         skills['index'] += vel_ind
-"""guardar"""
-cosas_pa_guardar = {}
-def save(name_of_py,list_surfs):
-    posis = list_surfs
-    to_py = f'value = {posis}'
-    with open(name_of_py, "w") as archivo_jsoni:
-        archivo_jsoni.write(to_py)
 
+"""active"""
+def active_menu():
+    menu.active = True
+def desactive_menu():
+    menu.active = False
 
+def pause_sound_and_video():
+    vid['bool_pause'] = True
+def despause_sound_and_video():
+    vid['bool_pause'] = False
 
-
-#create
-def create_button(screen,dict,bool_active):
-    button = pygame.Surface(dict['escala'])
-    button.fill(dict['color'])
-    screen.blit(button,dict['pos'])
-    string_blit(dict['string'],dict['pos'],dict['string_scale'],dict['string_color'])
-    if hover('a',pygame.mouse.get_pos(),dict['pos'],dict['escala']):
-        if bool_active == True:
-            dict['funcion']()
-button_sum_lugares = {'escala': (32, 32),'pos':(1100,500), 'color': (240, 240, 240),
+button_sum_lugares = {'escala': (32, 32),'pos':(1100,500), 'color': (240, 240, 240),'color_hover':(255,50,40),
                       'string':'+','string_scale':40,'string_color':(255,255,255),
                       'funcion':sumar_indice_lugares}
-button_res_lugares = {'escala': (32, 32),'pos':(1000,500), 'color': (240, 240, 240),
+button_res_lugares = {'escala': (32, 32),'pos':(1000,500), 'color': (240, 240, 240),'color_hover':(255,50,40),
                       'string':'-', 'string_scale':40,'string_color':(255,255,255),
                       'funcion':restar_indice_lugares}
 
-button_sum_index_sprite = {'escala': (32, 32),'pos':(100,0), 'color': (255, 0, 0),
+button_sum_index_sprite = {'escala': (32, 32),'pos':(100,0), 'color': (255, 0, 0),'color_hover':(255,50,40),
                            'string':'+','string_scale':40,'string_color':(255,255,255),
                            'funcion':suma_index_sprite}
-button_res_index_sprite = {'escala': (32, 32),'pos':(0,0), 'color': (255, 0, 0),
+button_res_index_sprite = {'escala': (32, 32),'pos':(0,0), 'color': (255, 0, 0),'color_hover':(255,50,40),
                            'string':'-','string_scale':40,'string_color':(255,255,255),
                            'funcion':resta_index_sprites}
 
-button_res_index_sprite_enem = {'escala': (32, 32),'pos':(1140,0), 'color': (255, 0, 0),
+button_res_index_sprite_enem = {'escala': (32, 32),'pos':(1140,0), 'color': (255, 0, 0),'color_hover':(255,50,40),
                                 'string':'-','string_scale':40,'string_color':(255,255,255),
                                 'funcion':resta_index_sprites_enem}
-button_sum_index_sprite_enem = {'escala': (32, 32),'pos':(1240,0), 'color': (255, 0, 0),
+button_sum_index_sprite_enem = {'escala': (32, 32),'pos':(1240,0), 'color': (255, 0, 0),'color_hover':(255,50,40),
                                 'string':'+','string_scale':40,'string_color':(255,255,255),
                                 'funcion':suma_index_sprite_enem}
 
-button_sum_index_mode = {'escala': (32, 32),'pos':(720,300), 'color': (255, 0, 0),
+button_sum_index_mode = {'escala': (32, 32),'pos':(720,300), 'color': (255, 0, 0),'color_hover':(255,50,40),
                            'string':'+','string_scale':40,'string_color':(255,255,255),
                            'funcion':sum_index_mode}
-button_res_index_mode = {'escala': (32, 32),'pos':(450,300), 'color': (255, 0, 0),
+button_res_index_mode = {'escala': (32, 32),'pos':(450,300), 'color': (255, 0, 0),'color_hover':(255,50,40),
                            'string':'-','string_scale':40,'string_color':(255,255,255),
                            'funcion':res_index_mode}
-button_pause = {'escala': (32, 32),'pos':(0,300), 'color': (255, 0, 0),
+button_pause = {'escala': (32, 32),'pos':(0,300), 'color': (255, 0, 0),'color_hover':(255,50,40),
                            'string':'P','string_scale':40,'string_color':(255,255,255),
                            'funcion':pause_sound_and_video}
-button_despause = {'escala': (32, 32),'pos':(0,340), 'color': (255, 0, 0),
+button_despause = {'escala': (32, 32),'pos':(0,340), 'color': (255, 0, 0),'color_hover':(255,50,40),
                            'string':'D','string_scale':40,'string_color':(255,255,255),
                            'funcion':despause_sound_and_video}
-button_sum_ind_screen = {'escala': (32, 32),'pos':(1000,600), 'color': (255, 0, 0),
+button_sum_ind_screen = {'escala': (32, 32),'pos':(1000,600), 'color': (255, 0, 0),'color_hover':(255,50,40),
                            'string':'>','string_scale':40,'string_color':(255,255,255),
                            'funcion':sum_index_pantalla}
-button_res_ind_screen = {'escala': (32, 32),'pos':(1100,600), 'color': (255, 0, 0),
+button_res_ind_screen = {'escala': (32, 32),'pos':(1100,600), 'color': (255, 0, 0),'color_hover':(255,50,40),
                            'string':'<','string_scale':40,'string_color':(255,255,255),
                            'funcion':res_index_pantalla}
-
-button_sum_ind_skills = {'escala': (32, 32),'pos':(80,150), 'color': (255, 0, 0),
+""""""
+button_sum_ind_skills = {'escala': (32, 32),'pos':(80,150), 'color': (255, 0, 0),'color_hover':(255,50,40),
                            'string':'+','string_scale':40,'string_color':(255,255,255),
                            'funcion':sum_skills_index}
-button_res_ind_skills = {'escala': (32, 32),'pos':(40,150), 'color': (255, 0, 0),
+button_res_ind_skills = {'escala': (32, 32),'pos':(40,150), 'color': (255, 0, 0),'color_hover':(255,50,40),
                            'string':'-','string_scale':40,'string_color':(255,255,255),
                            'funcion':res_skills_index}
-"""fonts"""
-def encontrar_posiciones(palabra, lista):
-    posiciones = [i for i, elemento in enumerate(lista) if elemento == palabra]
-    return posiciones if posiciones else f"La palabra '{palabra}' no se encuentra en la lista."
-def encontrar_maximo_de_elementos(lista):
-    num = 0
-    for dia in lista:
-        num += 1
-    return num
+"""button menu"""
+button_desactive_menu = {'escala': (200, 200),'pos':(500,300), 'color': (255, 255, 0),'color_hover':(255,50,40),
+                           'string':'New','string_scale':40,'string_color':(0,0,0),
+                           'funcion':desactive_menu}
+button_active_menu = {'escala': (50, 50),'pos':(1230,670), 'color': (255, 0, 0),'color_hover':(255,50,40),
+                           'string':'on','string_scale':30,'string_color':(255,255,255),
+                           'funcion':active_menu}
+"""button character"""
+button_sum_character = {'escala': (32, 32),'pos':(80,150), 'color': (255, 0, 0),'color_hover':(255,50,40),
+                           'string':'+','string_scale':40,'string_color':(255,255,255),
+                           'funcion':sum_characters}
+button_res_character = {'escala': (32, 32),'pos':(40,150), 'color': (255, 0, 0),'color_hover':(255,50,40),
+                           'string':'-','string_scale':40,'string_color':(255,255,255),
+                           'funcion':res_characters}
+"""save"""
+button_save = {'escala': (50, 50),'pos':(1230,470), 'color': (0, 0, 0),'color_hover':(255,50,40),
+                           'string':'save','string_scale':30,'string_color':(255,255,255),
+                           'funcion':save_xp}
 
-
-
-abc = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'ñ', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
-font_custom = [pygame.image.load('fonts/A-B-C-D-E-F-G-H-I-J-K-L-.png').convert_alpha()]
-font_1 = return_spritesheet(font_custom[0],[7,0],(59,60),25,False,True,(False,False),1)
-
-palabra_list = ['d','b']
-posicion_de_las_letras = get_locs(5,500,0,(False,True),(32,32))
-maximo = encontrar_maximo_de_elementos(palabra_list)
-posiciones_b = [encontrar_posiciones(palabra_list[i],abc)for i in range(0,maximo)]
-def create_text_by_font_img(screen,posiciones,font_imgs,pos_txt):
-    for ind_pos in posiciones:
-        screen.blit(font_imgs[ind_pos],pos_txt)
-        #for pos in pos_txt:
-
-
-
+#vid values
+videos = [video_ghostface,video_bleach,video_goku_sad,
+          video_saitama_meme,video_dante_dr_fauss]
+index_video = 1
+vid = videos[index_video]
+#map
 collision_in_the_map = {'bool':True}
 collide_bool = {'bool':False}
 ubis_in_map = [tienda_de_antiguedades['place_pos'],tienda_de_antiguedades['place_pos_door']]
 
-"""npc xd"""
-spritesheet_bulma = pygame.image.load('personajes/To npc/bulma.png')
-pasos_bulma = {'delay_list':[5,7],'delay_list_inverse':[1,16],'max_delay':90,'posiciones':[(880,600),(1100,600)],'index':0,'max_index':1,'specific_index':0,'vel':0.7,
-         'vel_npc':2,'random_move':False,'time':0,'max_time':70}
-bulma = create_the_npcs([return_spritesheet(spritesheet_bulma,[60,85],(22,38),4,False,True,(False,False),1.5),
-                         return_spritesheet(spritesheet_bulma,[60,9],(22,38),4,False,True,(False,False),1.5),
-                         return_spritesheet(spritesheet_bulma,[60,46],(22,38),4,False,True,(True,False),1.5),
-                         return_spritesheet(spritesheet_bulma,[60,46],(22,38),4,False,True,(False,False),1.5)],
-                        1,(30,70),(400,400),0.15,2,(32,32),1,300,(1,0))
-text_bulma_normal = create_text(pygame.transform.rotozoom(pygame.image.load('portraits/text box/normal.png'),0,1),
-                           ['...','....'],
-                           50,(255,255,255),24,1,[0,5,9,24,7,8],10,(1,0))
-text_bulma_nearby = create_text(pygame.transform.rotozoom(pygame.image.load('portraits/text box/emergencia.png'),0,1),
-                           ['habla con el'],
-                           50,(255,255,255),24,0,[0,5,9,24,7,8],60,(1,0))
-#milk
-spritesheet_milk = pygame.image.load('personajes/To npc/milk.png')
-pasos_milk = {'delay_list':[5,7],'delay_list_inverse':[1,16],'max_delay':90,'posiciones':[(880,100),(1100,100)],'index':0,'max_index':1,'specific_index':0,'vel':0.7,
-         'vel_npc':2,'random_move':False,'time':0,'max_time':50}
-milk = create_the_npcs([return_spritesheet(spritesheet_milk,[60,85],(22,38),4,False,True,(False,False),1.5),
-                         return_spritesheet(spritesheet_milk,[60,9],(22,38),4,False,True,(False,False),1.5),
-                         return_spritesheet(spritesheet_milk,[60,46],(22,38),4,False,True,(True,False),1.5),
-                         return_spritesheet(spritesheet_milk,[60,46],(22,38),4,False,True,(False,False),1.5)],
-                        1,(30,70),(400,400),0.15,2,(32,32),1,300,(1,0))
-text_milk_normal = create_text(pygame.transform.rotozoom(pygame.image.load('portraits/text box/normal.png'),0,1),
-                           ['...','......'],
-                           50,(255,255,255),24,1,[0,5,9,24,7,8],10,(1,0))
-text_milk_nearby = create_text(pygame.transform.rotozoom(pygame.image.load('portraits/text box/emergencia.png'),0,1),
-                           ['ENTRA YA'],
-                           50,(255,255,255),24,0,[0,5,9,24,7,8],60,(1,0))
-def text_blit_by_far(per_pos,speaker_pos,distance_speak,text_no_far,text_far,id_map_current,bool_exist):
-    if bool_exist == True:
-        if id_map_current == text_no_far['id_map']:
-            if avistamiento('a',per_pos,speaker_pos,distance_speak):
-                hablar(text_no_far,[speaker_pos],per_pos)
-        if id_map_current == text_far['id_map']:
-            if anti_avistamiento('a',per_pos,speaker_pos,distance_speak):
-                hablar(text_far, [speaker_pos], per_pos)
-#broly
-spritesheet_broly = pygame.image.load('personajes/broly/156873.png').convert_alpha()
-pasos_broly = {'delay_list':[5,7],'delay_list_inverse':[1,16],'max_delay':90,'posiciones':[(40,420),(160,680),(40,700),(500,370),(300,370)],'index':0,'max_index':4,'specific_index':0,'vel':0.7,
-         'vel_npc':5,'random_move':False,'time':0,'max_time':70}
-broly = create_the_npcs([return_spritesheet(spritesheet_broly,[160,101],(50,65),4,False,True,(False,False),1.5),
-                         return_spritesheet(spritesheet_broly,[161,19],(50,65),4,False,True,(False,False),1.5),
-                         return_spritesheet(spritesheet_broly,[165,172],(50,65),4,False,True,(True,False),1.5),
-                         return_spritesheet(spritesheet_broly,[165,172],(50,65),4,False,True,(False,False),1.5)],
-                        1,(30,70),(400,400),0.15,9,(32,32),30,300,(1,0))
-
-"""event"""
-
-
-
-"""viaje"""
-#def puente_map():
 def move_map(self):
 
-    global contador_de_salida,indice_west_city,west_city,indice_surfaces,numero_de_cambio,west_city_x,west_city_y,index_sprite,pantalla
+    global contador_de_salida,indice_west_city,west_city,index_sprite,pantalla,lista_img,lista_img_enem,e_rect
     pantalla = lista_de_pantalla[round(index_pantalla)]
     map_activates = modos_string[round(ind_mode)]
     cont_round = round(contador_de_salida)
+    #mouse pos
+    #print(pygame.mouse.get_pos(), 'mouse')
     """p1"""
-    num_aleatorio = random.randint(1,2)
-    self.lista_img = [up_sprite_list[round(index_sprite)],prob[round(index_sprite)],left_sprite_list[round(index_sprite)],right_sprite_list[round(index_sprite)]]
-    self.punch = [globals()[f'list_up_sprite_punch_{num_aleatorio}'][round(index_sprite)],globals()[f'list_down_sprite_punch_{num_aleatorio}'][round(index_sprite)],globals()[f'list_left_sprite_punch_{num_aleatorio}'][round(index_sprite)],globals()[f'list_right_sprite_punch_{num_aleatorio}'][round(index_sprite)]]
-    self.kekkai = [list_kekkai_up_sprite[round(index_sprite)],list_kekkai_down_sprite[round(index_sprite)],list_kekkai_left_sprite[round(index_sprite)],list_kekkai_right_sprite[round(index_sprite)]]
-    """enem"""
-    enem.list_img = [up_sprite_list[round(index_sprite_enem)],prob[round(index_sprite_enem)],left_sprite_list[round(index_sprite_enem)],right_sprite_list[round(index_sprite_enem)]]
-    enem.punch = [globals()[f'up_sprite_punch_{num_aleatorio}'],globals()[f'down_sprite_punch_{num_aleatorio}'],globals()[f'left_sprite_punch_{num_aleatorio}'],globals()[f'right_sprite_punch_{num_aleatorio}']]
+    lista_img = list_all_sprites[round(index_sprite)]
+    lista_img_enem = list_all_sprites[round(index_sprite_enem)]
+
+    lista_img_alt = list_all_sprites_alt[round(index_sprite)]
+    #lista_img_enem_alt = list_all_sprites_alt[round(index_sprite_enem)]
+
+    lista_img_alt_2 = list_all_sprites_alt_2[round(index_sprite)]
+    #lista_img_enem_alt_2 = list_all_sprites_alt_2[round(index_sprite_enem)]
     """maps"""
+    id_map_current = (west_city['index_y'], west_city['index_x'])
     if map_activates == 'free_battle':
+        """screen"""
         lugar_actual = mapita[round(indice_lugares)]
-        screen.blit(lugar_actual, (0, -200))
+        """screen"""
+        screen.blit(lugar_actual, (0, 0))
+        """list img"""
+        avatar_enemy['list_img'] = lista_img_enem
+        if p1.moverse['kekkai'] == False and p1.moverse['charge'] == False:
+            avatar_free_batle['list_img'] = lista_img
+        if p1.moverse['kekkai'] == True:
+            avatar_free_batle['list_img'] = lista_img_alt
+        if p1.moverse['grab'] == True:
+            move_npc_for_enemy(screen,ki_blast,avatar_enemy,2000,True,(0,0),False,pygame.mouse.get_pressed()[0],avatar_enemy['rect_list'][0])
+        if p1.moverse['esp'] == True:
+            move_npc_for_enemy(screen,clon_free_batle,avatar_enemy,2000,True,(0,0),False,pygame.mouse.get_pressed()[0],avatar_enemy['rect_list'][0])
+            
+            
+        
+        Avatar(screen, avatar_free_batle, p1.moverse['up'], p1.moverse['down'], p1.moverse['left'], p1.moverse['right'],pygame.mouse.get_pressed()[0], False)
+        lista_rects_colision = [[0,0,1280,720],[480,150,200,220],[514,258,250, 230],[0,0,1280,720]]
+        Reiatsu(p1.moverse['kekkai'],domain_expansion(screen,avatar_free_batle['rect_list'][0],(200,200),avatar_enemy['rect_list'][0]),
+                    avatar_free_batle,
+                    avatar_enemy,
+                    1.4,
+                    [0,0,7000,7000])
+        Shunpo(avatar_free_batle,p1.moverse['shunpo'],avatar_enemy)
+        Blue(p1.moverse['ki_blast'],avatar_enemy,avatar_free_batle,6)
+        Rinegan(p1.moverse['esp_2'],avatar_free_batle,avatar_enemy)
+        Ultra_instinc(p1.moverse['charge'],avatar_free_batle,avatar_enemy,5,100,lista_rects_colision[round(indice_lugares)])
+
+        move_npc_for_enemy(screen,avatar_enemy,avatar_free_batle,2000,True,(0,0),True,pygame.mouse.get_pressed()[0],avatar_free_batle['rect_list'][0])
+
+        create_button(screen, button_sum_index_sprite, pygame.mouse.get_pressed()[2])
+        create_button(screen, button_res_index_sprite, pygame.mouse.get_pressed()[2])
+
+        create_button(screen, button_res_index_sprite_enem, pygame.mouse.get_pressed()[2])
+        create_button(screen, button_sum_index_sprite_enem, pygame.mouse.get_pressed()[2])
+        
+        #screen.blit(portraits[round(index_sprite)], (35, 0))
+        #screen.blit(portraits[round(index_sprite_enem)], (1175, 0))
+
+        
+
+        if p1.moverse['charge'] == True:
+            avatar_free_batle['list_img'] = lista_img_alt_2
+            video_Aura_ui['pos'] = [avatar_free_batle['rect_list'][0][0]-25,avatar_free_batle['rect_list'][0][1]-15]
+            blit_video(screen,video_Aura_ui)
+        if p1.moverse['kekkai'] == True:
+            video_Aura_kaioken['pos'] = [avatar_free_batle['rect_list'][0][0]-25,avatar_free_batle['rect_list'][0][1]-15]
+            blit_video(screen,video_Aura_kaioken)
+        """collide"""
+        Collide(avatar_free_batle,avatar_enemy,5,1,lista_rects_colision[round(indice_lugares)],pygame.mouse.get_pressed()[0],100)
+        Collide(avatar_enemy,avatar_free_batle,5,0,lista_rects_colision[round(indice_lugares)],False,20)
+        collide_for_color((255,0,0),p1.s_rect,(1280,720),mapita_collision[round(indice_lugares)],1,(32,32),10)
+
         create_button(screen, button_res_lugares, pygame.mouse.get_pressed()[0])
         create_button(screen, button_sum_lugares, pygame.mouse.get_pressed()[0])
-        lugari_actual = lugares[round(indice_lugares)]
+
         """mostrar lugar"""
-        screen.blit(lugari_actual, (1020, 600))
+        lugar_actual = lugares[round(indice_lugares)]
+        screen.blit(lugar_actual, (1020, 600))
 
     elif map_activates == 'tournament':
+        #blit map
+        screen.blit(mapita[2],(0,0))
 
-        screen.blit(gta,(0,-200))
-
+        Avatar(screen,mr_satan,p1.moverse['up'],p1.moverse['down'],p1.moverse['left'],p1.moverse['right'],pygame.mouse.get_pressed()[0],pygame.mouse.get_pressed()[2])
+        move_npc_for_enemy(screen,piccolo,mr_satan,2000,True,(0,0),True,pygame.mouse.get_pressed()[0],mr_satan['rect_list'][0])
+        e_rect = mr_satan['rect_list'][0]
+        Collide(mr_satan,piccolo,5,0,[0,0,1280,720],False,20)
         """salir del escenario"""
-        if antihover(450, 360, (400, 140), p1.s_rect):
+        if antihover(250, 252, (514, 258), mr_satan['rect_list'][0]):
             contador_de_salida += 0.3
-            string_blit(str(cont_round), (0, 0), 40, (255, 0,0))
-        elif antihover(450, 360, (400, 140), enem.e_rect):
+            string_blit(str(cont_round), (0, 0), 40, (255, 0,0),screen)
+        elif antihover(250, 252, (514, 258), piccolo['rect_list'][0]):
             contador_de_salida += 0.3
-            string_blit(str(cont_round), (0, 0), 40, (255, 0,0))
+            string_blit(str(cont_round), (0, 0), 40, (255, 0,0),screen)
         else:
             contador_de_salida = 0
         if contador_de_salida > 10:
-            p1.s_rect.x = 400
-            p1.s_rect.y = 400
-            enem.e_rect.x = 800
-            enem.e_rect.y = 400
+            mr_satan['rect_list'][0][0],mr_satan['rect_list'][0][1] = 520,400
+            piccolo['rect_list'][0][0],piccolo['rect_list'][0][1] = 620,400
             contador_de_salida = 0
     elif map_activates == 'history':
-        #west_city_principal_subsurf = pygame.Surface.subsurface(west_city_principal, (west_city_x, west_city_y),(1280, 720)).convert()
-        #west_copy_subsurf = pygame.Surface.subsurface(map_copy, (west_city_x, west_city_y),(1280, 720)).convert()
+        
+        screen.fill((0,random.randint(148,150),random.randint(253,255)))
+        rect = avatar_main['rect_list'][0]
+        
+        obtener_metas([0,0,9,9],[0,0,0,0])
 
-        #screen.blit(west_city_principal_subsurf,(0,0))
-        id_map_current = (west_city['index_y'], west_city['index_x'])
         screen.blit(west_city['surf_normal'][west_city['index_y']][west_city['index_x']],(0,0))
+        use_xp(screen,EXP,pygame.mouse.get_pressed()[0])
+        create_items(screen,dragonballs,(0,0),value['xp'],100,6)
+
         create_place(screen, tienda_de_antiguedades, collision_in_the_map, pygame.mouse.get_pressed()[0],
-                     pygame.mouse.get_pressed()[2], p1.s_rect,(west_city['index_y'],west_city['index_x']))
+                     pygame.mouse.get_pressed()[2], rect,(west_city['index_y'],west_city['index_x']))
         create_place(screen, tienda_electrónica, collision_in_the_map, pygame.mouse.get_pressed()[0],
-                     pygame.mouse.get_pressed()[2], p1.s_rect, (west_city['index_y'], west_city['index_x']))
-        print(pygame.mouse.get_pos())
+                     pygame.mouse.get_pressed()[2], rect, (west_city['index_y'], west_city['index_x']))
+        create_place(screen, bulma_room, collision_in_the_map, pygame.mouse.get_pressed()[0],
+                     pygame.mouse.get_pressed()[2], rect, (west_city['index_y'], west_city['index_x']))
+        print(pygame.mouse.get_pos(),'mouse')
         """button"""
-        create_button(screen, button_sum_index_sprite, pygame.mouse.get_pressed()[0])
+        """create_button(screen, button_sum_index_sprite, pygame.mouse.get_pressed()[0])
         create_button(screen, button_res_index_sprite, pygame.mouse.get_pressed()[0])
 
         create_button(screen,button_res_index_sprite_enem,pygame.mouse.get_pressed()[0])
-        create_button(screen,button_sum_index_sprite_enem,pygame.mouse.get_pressed()[0])
+        create_button(screen,button_sum_index_sprite_enem,pygame.mouse.get_pressed()[0])"""
 
-        create_button(screen, button_res_ind_skills, pygame.mouse.get_pressed()[0])
-        create_button(screen, button_sum_ind_skills, pygame.mouse.get_pressed()[0])
+        #create_button(screen, button_res_ind_skills, pygame.mouse.get_pressed()[0])
+        #create_button(screen, button_sum_ind_skills, pygame.mouse.get_pressed()[0])
 
-        screen.blit(portraits[round(index_sprite)],(35,0))
-        screen.blit(portraits[round(index_sprite_enem)], (1175, 0))
-
-        #create_character(self,mainer)
-        use_skills(screen,skills['skills'][round(skills['index'])],pygame.mouse.get_pressed()[2])
+        #screen.blit(portraits[round(index_sprite)],(35,0))
+        #use_skills(screen,skills['skills'][round(skills['index'])],pygame.mouse.get_pressed()[2])
         for rect_list in the_npc_0['rect_list']:
-            rex = [p1.s_rect,enem.e_rect,rect_list]
+            rex = [rect,rect_list]
             for rects in rex:
                 if collision_in_the_map['bool'] == True:
-                    collide_for_color(self,(248,0,0),rects,(1200,600),west_city['surf_collide'][west_city['index_y']][west_city['index_x']],1,(32,32))
-        #draw_the_surf_in_other(invisible_object(p1.s_rect,(32,32),west_copy_subsurf,color_permitido),map_copy_alpha)"""
-        #move_npc_for_enemy(self,the_npc_0,300)
-        #move_npc_for_npc(self,the_npc_0,300)
+                    for color in [(248,0,0)]:
+                        collide_for_color(color,rects,(1200,600),west_city['surf_collide'][west_city['index_y']][west_city['index_x']],1,(32,32),10)
+        for npcs in [broly,bulma,milk]:
+            Collide(avatar_main,npcs,5,0,[0,0,1280,720],pygame.mouse.get_pressed()[0],20)
+        move_npc_for_enemy(screen,broly,avatar_main,1000,True,id_map_current,True,pygame.mouse.get_pressed()[0],avatar_main['rect_list'][0])
         npc_follow(screen,bulma,pasos_bulma,p1.s_rect,id_map_current,True)
         npc_follow(screen, milk,pasos_milk,p1.s_rect, id_map_current,True)
-        #move_npc_for_npc(self,broly,2000)
-        #npc_follow(screen,broly,pasos_broly,p1.s_rect,id_map_current)
-        #create_character(self,mainer)
-        #screen.blit(prob[index_sprite][index_sprite],(0,0))
-        #move_in_map(self,500,recto,objetos_de_west_city)
+        s_rect = avatar_main['rect_list'][0]
+        screen.blit(nube_voladora[avatar_main['indice'][0]][round(avatar_main['number_change'][0])],[avatar_main['rect_list'][0][0]-12,avatar_main['rect_list'][0][1]+32])
+        Avatar(screen,avatar_main,p1.moverse['up'],p1.moverse['down'],p1.moverse['left'],p1.moverse['right'],pygame.mouse.get_pressed()[0],pygame.mouse.get_pressed()[2])
+
+        """dead"""
+        if avatar_main['life_list'] < 2:
+            avatar_main['life_list'] = 400
+            west_city['index_y'] = 0
+            west_city['index_x'] = 0
+            s_rect[0] = 400
+            s_rect[1] = 400
+            value['xp'] = 0
+
+
         """sum"""
         for rect_list in the_npc_0['rect_list']:
-            rex = [p1.s_rect,enem.e_rect,rect_list]
-            if west_city['index_y'] < 2:
-                if p1.s_rect[1] > 700:
+            rex = [p1.s_rect,rect_list]
+            if west_city['index_y'] < west_city['max_index_y']:
+                if s_rect[1] > 700:
                     west_city['index_y'] += 1
-                    p1.s_rect[1] = 40
-            if west_city['index_x'] < 1:
-                if p1.s_rect[0] > 1270:
+                    s_rect[1] = 40
+            if west_city['index_x'] < west_city['max_index_x']:
+                if s_rect[0] > 1270:
                     west_city['index_x'] += 1
-                    p1.s_rect[0] = 20
+                    s_rect[0] = 20
                     rex[1][0] -= 1280
         """res"""
         if west_city['index_y'] > 0:
-            if p1.s_rect[1] < 10:
+            if s_rect[1] < 10:
                 west_city['index_y'] -= 1
-                p1.s_rect[1] = 700
+                s_rect[1] = 700
         if west_city['index_x'] > 0:
-            if p1.s_rect[0] < 10:
+            if s_rect[0] < 10:
                 west_city['index_x'] -= 1
-                p1.s_rect[0] = 1260
+                s_rect[0] = 1260
     elif map_activates == 'training':
-        p1.vida_value = 300
-        enem.vida = 300
+        screen.fill((0,0,0))
+        index_for_angle(avatar_training, avatar_training['rect_list'][0],pygame.mouse.get_pos())
+        Avatar(screen, avatar_training, p1.moverse['up'], p1.moverse['down'], p1.moverse['left'], p1.moverse['right'],p1.moverse['punch'], pygame.mouse.get_pressed()[2])
+    elif map_activates == 'simulation':
+        cinematic_1(screen,npc_simulation_1,npc_simulation_2,1000)
+    elif map_activates == '2D fight':
+        screen.fill((0,0,0))
+        Avatar(screen,saitama_2d_fighter,p1.moverse['up'],p1.moverse['down'],p1.moverse['left'],p1.moverse['right'],pygame.mouse.get_pressed()[0],pygame.mouse.get_pressed()[1])
+        gravedad(saitama_2d_fighter,4,2,p1.moverse['up'],500)
+        gravedad(luffy_2d_fighter,4,2,p1.moverse['up'],500)
+        move_npc_for_enemy(screen,luffy_2d_fighter,saitama_2d_fighter,1000,True,(0,0),True,pygame.mouse.get_pressed()[0],saitama_2d_fighter['rect_list'][0])
+        collide_2d_fighter(saitama_2d_fighter,luffy_2d_fighter,5,0)
+    elif map_activates == 'other':
+        screen.fill((255,0,0))
+        camera_follow(screen,map_3d_fake,characters[round(index_character)],p1.moverse['up'],p1.moverse['down'],p1.moverse['left'],p1.moverse['right'],pygame.mouse.get_pressed()[0],pygame.mouse.get_pressed()[1],pos_player,5)
+        pre_render_npc(characters[round(index_character_enem)],screen,pos_enem,pos_player)
+        create_button(screen,button_sum_character,pygame.mouse.get_pressed()[0])
+        create_button(screen,button_res_character,pygame.mouse.get_pressed()[0])
 
-
-    if map_activates != 'training':
-        p1.vel_trasicion_img = 0.1
-
-nigga = 0
-max_nigga = 1
 def change_map(self):
     global map_activates,indice_lugares,index_video,nigga
     map_activates = modos_string[round(ind_mode)]
@@ -1931,70 +1947,45 @@ def change_map(self):
 
     """map copy alpha"""
     if menu.active == False:
-
+        create_button(screen, button_active_menu, pygame.mouse.get_pressed()[0])
         """exp"""
-        use_xp(screen,EXP,p1.s_rect.colliderect(enem.e_rect))
+        #use_xp(screen,EXP,p1.s_rect.colliderect(enem['e_rect']))
         """auras"""
-        num_rand = random.randint(1,2)
-        auras = [aura_ej, aura_down, aura_left, aura_right,
-                 globals()[f'aura_punch_up_{num_rand}'], globals()[f'aura_punch_down_{num_rand}'], globals()[f'aura_punch_left_{num_rand}'], globals()[f'aura_punch_right_{num_rand}'],
-                 aura_kekkai_up, aura_kekkai_down, aura_kekkai_left, aura_kekkai_right]
-        blit_aura(screen, auras[self.indice][round(self.num_change)], p1.s_rect, 5)
+        #blit_aura(screen, auras[self.indice][round(self.num_change)], p1.s_rect, 5)
         #blit_sword(screen,nozarashi,p1.s_rect,enem.e_rect,self.indice,pygame.mouse.get_pressed()[2])
         #blit_effect(screen,pygame.mouse.get_pressed()[0],self.indice,p1.s_rect,effect_Tsukiyubi)
-        if p1.s_rect.colliderect(enem.e_rect):
-            press_button_time(screen,[0,8,9],12,button_no_press,button_press,(p1.s_rect[0]-50,p1.s_rect[1]+20))
-        # hablar(texto_normal,[enem.e_rect],p1.s_rect)
-        #hablar(texto_normal, [p1.s_rect], p1.s_rect)
         id_map_current = (west_city['index_y'], west_city['index_x'])
-        text_blit_by_far(p1.s_rect,milk['rect_list'][0],500,text_milk_nearby,text_milk_normal,id_map_current,True)
-        text_blit_by_far(p1.s_rect, bulma['rect_list'][0], 500, text_bulma_nearby, text_bulma_normal,id_map_current,True)
+
+
         if map_activates == 'history':
             screen.blit(west_city['surf_alpha'][west_city['index_y']][west_city['index_x']],(0,0))
-
+            text_blit_by_far(avatar_main['rect_list'][0], milk['rect_list'][0], 500, text_milk_nearby, text_milk_normal, id_map_current, True,screen)
+            text_blit_by_far(avatar_main['rect_list'][0], bulma['rect_list'][0], 500, text_bulma_nearby, text_bulma_normal, id_map_current, True,screen)
     if menu.active == True:
 
-        string_blit(str(map_activates),(900,50),50,rgb)
+        string_blit(str(map_activates),(900,50),50,rgb,screen)
         screen.blit(portrait_modos[round(ind_mode)],(400,200))
 
         create_button(screen,button_res_index_mode,pygame.mouse.get_pressed()[0])
         create_button(screen, button_sum_index_mode, pygame.mouse.get_pressed()[0])
 
+        create_button(screen, button_desactive_menu, pygame.mouse.get_pressed()[0])
 
-        #create_button(screen, button_sum_ind_screen, pygame.mouse.get_pressed()[0])
-        #create_button(screen, button_res_ind_screen, pygame.mouse.get_pressed()[0])
+        create_button(screen, button_save, pygame.mouse.get_pressed()[0])
 
-        if nigga < max_nigga:
-            nigga += 0.1
-        if nigga > max_nigga:
-            nigga = 0
-        num_change = round(nigga)
-        create_text_by_font_img(screen, posiciones_b[num_change], font_1, posicion_de_las_letras[num_change])
+
+        create_text_by_font_img(screen, posiciones_b[random.randint(0,1)], font_1, posicion_de_las_letras[random.randint(0,1)])
 
         #video
         #blit_video(screen,vid)
+        #Play_sound(p1.moverse['punch'],Sound_A)
         create_button(screen,button_pause,pygame.mouse.get_pressed()[0])
         create_button(screen, button_despause, pygame.mouse.get_pressed()[0])
-        """custom"""
-        #create_character((800,400))
+
 p1.function_normal = move_map
 p1.function_in_menu = change_map
 
-# p1.type_surface = 'variable'
-#p1.minimap = mp
-#p1.enem_class = enem
 p1.menu = Menu
-"""p1.lista_img = move
-p1.punch = punch
-p1.kekkai = kekkai"""
-#p1.npc_class = npc
-#p1.ki_class = Ki
-#p1.Guard_surface = pygame.transform.rotozoom(pygame.image.load('bubble.png'),0,0.1)
-#p1.Guard_surface.set_colorkey((255,255,255))
-#p1.world_map = world
-#p1.video_class = vidio
-#p1.charge_screen_class = charging_screen
 p1(screen,1280,720)
-#p1(screen,moverse)
-#p1 = player()
+
 
